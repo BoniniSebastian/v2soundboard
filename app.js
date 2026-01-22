@@ -5,9 +5,9 @@ const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 
 const CATEGORIES = [
-  { title: "Tuta", folder: "sounds/tuta" },
-  { title: "Goal", folder: "sounds/mal" },
-  { title: "Utvisning", folder: "sounds/utvisning" }
+  { title: "Tuta", folder: "sounds/tuta", css: "tuta" },
+  { title: "GOAL", folder: "sounds/mal", css: "goal" },
+  { title: "Utvisning", folder: "sounds/utvisning", css: "utvisning" }
 ];
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
