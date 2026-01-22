@@ -6,7 +6,7 @@ const REPO  = "v2soundboard";
 
 const CATEGORIES = [
   { title: "Tuta", folder: "sounds/tuta" },
-  { title: "Mal", folder: "sounds/mal" },
+  { title: "Mål", folder: "sounds/mal" },
   { title: "Utvisning", folder: "sounds/utvisning" }
 ];
 
