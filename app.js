@@ -3,7 +3,7 @@ let currentButton = null;
 
 // 🔧 ÄNDRA DESSA TVÅ om ditt repo/namn skiljer:
 const OWNER = "boninisebastian";
-const REPO  = "SB-Soundboard";
+const REPO  = "v2soundboard";
 const FOLDER = "sounds";
 
 const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?t=${Date.now()}`;
