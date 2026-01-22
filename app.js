@@ -3,9 +3,13 @@ let currentButton = null;
 
 const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
-const FOLDER = "sounds";
 
-const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?t=${Date.now()}`;
+const CATEGORIES = [
+  { title: "Tuta", folder: "sounds/tuta" },
+  { title: "Mål", folder: "sounds/mal" },
+  { title: "Utvisning", folder: "sounds/utvisning" }
+];
+
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
 init();
@@ -14,19 +18,27 @@ async function init() {
   const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
-  const section = document.createElement("div");
-  section.className = "section";
+  for (const cat of CATEGORIES) {
+    const section = document.createElement("div");
+    section.className = "section";
 
-  const title = document.createElement("div");
-  title.className = "section-title";
-  title.textContent = "MUSIK";
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = cat.title;
 
-  const grid = document.createElement("div");
-  grid.className = "grid";
+    const grid = document.createElement("div");
+    grid.className = "grid";
 
-  section.appendChild(title);
-  section.appendChild(grid);
-  root.appendChild(section);
+    section.appendChild(title);
+    section.appendChild(grid);
+    root.appendChild(section);
+
+    await loadFolder(cat.folder, grid);
+  }
+}
+
+async function loadFolder(folder, grid) {
+  const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
   try {
     const res = await fetch(API_URL, { cache: "no-store" });
@@ -35,11 +47,11 @@ async function init() {
 
     const files = (items || [])
       .filter(x => x?.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name))
+      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
       .map(x => ({ name: x.name, url: x.download_url }));
 
     if (files.length === 0) {
-      grid.innerHTML = `<div style="opacity:.7">Inga ljud hittades i /sounds.</div>`;
+      grid.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
       return;
     }
 
@@ -53,9 +65,7 @@ async function init() {
 
   } catch (e) {
     console.error(e);
-    grid.innerHTML = `<div style="opacity:.7">
-      Kunde inte läsa /sounds via GitHub API.
-    </div>`;
+    grid.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
   }
 }
 
@@ -65,7 +75,6 @@ function toggle(btn, url) {
 
   const audio = new Audio(url);
   audio.preload = "auto";
-
   audio.play().catch(() => alert("Kunde inte spela ljudet."));
 
   currentAudio = audio;
