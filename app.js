@@ -1,8 +1,7 @@
 let currentAudio = null;
 let currentButton = null;
 
-// 🔧 ÄNDRA DESSA TVÅ om ditt repo/namn skiljer:
-const OWNER = "boninisebastian";
+const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 const FOLDER = "sounds";
 
@@ -12,7 +11,7 @@ const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 init();
 
 async function init() {
-  const root = document.getElementById("app");
+  const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
   const section = document.createElement("div");
@@ -36,7 +35,7 @@ async function init() {
 
     const files = (items || [])
       .filter(x => x?.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
+      .sort((a,b) => a.name.localeCompare(b.name))
       .map(x => ({ name: x.name, url: x.download_url }));
 
     if (files.length === 0) {
@@ -55,7 +54,7 @@ async function init() {
   } catch (e) {
     console.error(e);
     grid.innerHTML = `<div style="opacity:.7">
-      Kunde inte läsa /sounds. Kontrollera att repot är Public och att mappen finns.
+      Kunde inte läsa /sounds via GitHub API.
     </div>`;
   }
 }
@@ -88,4 +87,11 @@ function isAudio(name) {
   if (name === ".keep") return false;
   const ext = (name.split(".").pop() || "").toLowerCase();
   return AUDIO_EXT.includes(ext);
+}
+
+function createRoot() {
+  const div = document.createElement("div");
+  div.id = "app";
+  document.body.appendChild(div);
+  return div;
 }
