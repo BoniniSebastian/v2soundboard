@@ -5,9 +5,9 @@ const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 
 const CATEGORIES = [
-  { title: "Tuta",      folder: "sounds/tuta",      css: "tuta" },
-  { title: "GOAL",      folder: "sounds/mal",       css: "goal" }, // mappen heter "mal"
-  { title: "Utvisning", folder: "sounds/utvisning", css: "utvisning" }
+  { id: "tuta", label: "Tuta" },
+  { id: "goal", label: "Goal" },
+  { id: "utvisning", label: "Utvisning" }
 ];
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
@@ -15,43 +15,47 @@ const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 init();
 
 async function init() {
-  const root = document.getElementById("app") || createRoot();
+  const root = document.getElementById("app");
   root.innerHTML = "";
 
+  const title = document.createElement("h1");
+  title.textContent = "SB Soundboard";
+  root.appendChild(title);
+
   for (const cat of CATEGORIES) {
-    const section = document.createElement("div");
-    section.className = "section";
-
-    const title = document.createElement("div");
-    title.className = "section-title";
-    title.textContent = cat.title;
-
-    const grid = document.createElement("div");
-    grid.className = `grid ${cat.css}`;
-
-    section.appendChild(title);
-    section.appendChild(grid);
-    root.appendChild(section);
-
-    await loadFolder(cat.folder, grid);
+    await loadCategory(root, cat);
   }
 }
 
-async function loadFolder(folder, gridEl) {
-  const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
+async function loadCategory(root, cat) {
+  const section = document.createElement("div");
+  section.className = "section";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = cat.label;
+
+  const grid = document.createElement("div");
+  grid.className = "grid";
+
+  section.appendChild(title);
+  section.appendChild(grid);
+  root.appendChild(section);
+
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/sounds/${cat.id}?t=${Date.now()}`;
 
   try {
-    const res = await fetch(apiUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error(`GitHub API fel: ${res.status}`);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("API error");
+
     const items = await res.json();
 
-    const files = (items || [])
-      .filter(x => x?.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
-      .map(x => ({ name: x.name, url: x.download_url }));
+    const files = items
+      .filter(f => f.type === "file" && isAudio(f.name))
+      .sort((a,b) => a.name.localeCompare(b.name));
 
     if (files.length === 0) {
-      gridEl.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
+      grid.innerHTML = `<div style="opacity:.6">Inga ljud</div>`;
       return;
     }
 
@@ -59,18 +63,16 @@ async function loadFolder(folder, gridEl) {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(f.name);
-      btn.addEventListener("click", () => toggle(btn, f.url));
-      gridEl.appendChild(btn);
+      btn.onclick = () => toggle(btn, f.download_url);
+      grid.appendChild(btn);
     });
 
   } catch (e) {
-    console.error(e);
-    gridEl.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
+    grid.innerHTML = `<div style="opacity:.6">Kunde inte läsa sounds/${cat.id}</div>`;
   }
 }
 
 function toggle(btn, url) {
-  // Samma knapp igen => stoppa
   if (currentButton === btn) {
     stop();
     return;
@@ -79,9 +81,7 @@ function toggle(btn, url) {
   stop();
 
   const audio = new Audio(url);
-  audio.preload = "auto";
-
-  audio.play().catch(() => alert("Kunde inte spela ljudet."));
+  audio.play();
 
   currentAudio = audio;
   currentButton = btn;
@@ -95,26 +95,16 @@ function stop() {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
-  if (currentButton) {
-    currentButton.classList.remove("playing");
-  }
+  if (currentButton) currentButton.classList.remove("playing");
   currentAudio = null;
   currentButton = null;
 }
 
-function pretty(name) {
-  return name.replace(/\.[^/.]+$/, "");
-}
-
 function isAudio(name) {
-  if (name === ".keep") return false;
-  const ext = (name.split(".").pop() || "").toLowerCase();
+  const ext = name.split(".").pop().toLowerCase();
   return AUDIO_EXT.includes(ext);
 }
 
-function createRoot() {
-  const div = document.createElement("div");
-  div.id = "app";
-  document.body.appendChild(div);
-  return div;
+function pretty(name) {
+  return name.replace(/\.[^/.]+$/, "");
 }
