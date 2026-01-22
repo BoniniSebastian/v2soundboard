@@ -110,3 +110,9 @@ function createRoot() {
   document.body.appendChild(div);
   return div;
 }
+const refreshBtn = document.getElementById("refreshBtn");
+if (refreshBtn) {
+  refreshBtn.addEventListener("click", () => {
+    location.reload();
+  });
+}
