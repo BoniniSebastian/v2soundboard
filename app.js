@@ -8,7 +8,7 @@ const CATEGORIES = [
   { label: "Tuta",      folder: "sounds/tuta" },
   { label: "GOAL",      folder: "sounds/mal" },        // <-- mappen heter mal
   { label: "Utvisning", folder: "sounds/utvisning" }
-  { label: "Avbrott", folder: "sounds/Avbrott" }
+  { label: "Avbrott", folder: "sounds/avbrott" }
 ];
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
