@@ -19,8 +19,38 @@ async function init() {
   const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
-  hookPlayerControls();
+  // Koppla kontroller (måste finnas i index.html)
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const stopBtn = document.getElementById("stopBtn");
 
+  // Säker default-ikon
+  if (playPauseBtn) playPauseBtn.textContent = "▶";
+  if (stopBtn) stopBtn.textContent = "■";
+
+  // Play/Pause (pausar/fortsätter aktuell låt)
+  if (playPauseBtn) {
+    playPauseBtn.addEventListener("click", () => {
+      if (!currentAudio) return;
+
+      if (currentAudio.paused) {
+        currentAudio.play().catch(() => {});
+        playPauseBtn.textContent = "||"; // PAUSE
+      } else {
+        currentAudio.pause();
+        playPauseBtn.textContent = "▶"; // PLAY
+      }
+    });
+  }
+
+  // Stop (stoppar och spolar tillbaka)
+  if (stopBtn) {
+    stopBtn.addEventListener("click", () => {
+      stop();
+      if (playPauseBtn) playPauseBtn.textContent = "▶";
+    });
+  }
+
+  // Bygg kategorier och knappar
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
@@ -36,38 +66,11 @@ async function init() {
     section.appendChild(grid);
     root.appendChild(section);
 
-    await loadFolder(cat.folder, grid);
-  }
-
-  updatePlayPauseIcon();
-}
-
-function hookPlayerControls() {
-  const playPauseBtn = document.getElementById("playPauseBtn");
-  const stopBtn = document.getElementById("stopBtn");
-
-  if (playPauseBtn) {
-    playPauseBtn.addEventListener("click", () => {
-      if (!currentAudio) return;
-
-      if (currentAudio.paused) {
-        currentAudio.play().catch(() => {});
-      } else {
-        currentAudio.pause();
-      }
-      updatePlayPauseIcon();
-    });
-  }
-
-  if (stopBtn) {
-    stopBtn.addEventListener("click", () => {
-      stop();
-      updatePlayPauseIcon();
-    });
+    await loadFolder(cat.folder, grid, playPauseBtn);
   }
 }
 
-async function loadFolder(folder, gridEl) {
+async function loadFolder(folder, gridEl, playPauseBtn) {
   const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
   try {
@@ -89,7 +92,35 @@ async function loadFolder(folder, gridEl) {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(f.name);
-      btn.addEventListener("click", () => toggle(btn, f.url));
+
+      btn.addEventListener("click", () => {
+        // Klick på samma knapp igen = STOPP (som du vill)
+        if (currentButton === btn && currentAudio && !currentAudio.paused) {
+          stop();
+          if (playPauseBtn) playPauseBtn.textContent = "▶";
+          return;
+        }
+
+        // Stoppa allt annat först
+        stop();
+
+        // Spela ny
+        const audio = new Audio(f.url);
+        audio.preload = "auto";
+        audio.play().catch(() => alert("Kunde inte spela ljudet."));
+
+        currentAudio = audio;
+        currentButton = btn;
+        btn.classList.add("playing");
+
+        if (playPauseBtn) playPauseBtn.textContent = "||";
+
+        audio.onended = () => {
+          stop();
+          if (playPauseBtn) playPauseBtn.textContent = "▶";
+        };
+      });
+
       gridEl.appendChild(btn);
     });
 
@@ -99,49 +130,15 @@ async function loadFolder(folder, gridEl) {
   }
 }
 
-function toggle(btn, url) {
-  // Tryck på samma knapp igen = STOPP (startar från början nästa gång)
-  if (currentButton === btn && currentAudio && !currentAudio.paused) {
-    stop();
-    updatePlayPauseIcon();
-    return;
-  }
-
-  stop();
-
-  const audio = new Audio(url);
-  audio.preload = "auto";
-
-  audio.play().catch(() => alert("Kunde inte spela ljudet."));
-
-  currentAudio = audio;
-  currentButton = btn;
-  btn.classList.add("playing");
-
-  updatePlayPauseIcon();
-
-  audio.onended = () => {
-    stop();
-    updatePlayPauseIcon();
-  };
-}
-
 function stop() {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
   if (currentButton) currentButton.classList.remove("playing");
+
   currentAudio = null;
   currentButton = null;
-}
-
-function updatePlayPauseIcon() {
-  const playPauseBtn = document.getElementById("playPauseBtn");
-  if (!playPauseBtn) return;
-
-  if (currentAudio && !currentAudio.paused) playPauseBtn.textContent = "⏸";
-  else playPauseBtn.textContent = "▶︎";
 }
 
 function pretty(name) {
