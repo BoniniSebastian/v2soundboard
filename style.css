@@ -1,39 +1,65 @@
-/* ===== BAS ===== */
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
   background: #000;
   color: #fff;
 }
 
-/* ===== ROT ===== */
-#app {
-  padding: 16px;
+/* ===== ROTATE NOTICE ===== */
+#rotateNotice {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 22px;
+  z-index: 9999;
+  pointer-events: none; /* <-- VIKTIG */
 }
 
-/* ===== SEKTIONER ===== */
+/* ===== PLAYER CONTROLS ===== */
+#player-controls {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 10000;
+}
+
+#player-controls button {
+  background: #111;
+  border: 2px solid #ff4f9a;
+  color: #ff4f9a;
+  font-size: 18px;
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+/* ===== APP ===== */
 .section {
-  margin-bottom: 28px;
+  padding: 16px;
 }
 
 .section-title {
   font-size: 22px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-/* ===== GRID ===== */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-/* ===== MUSIKKNAPPAR (SVARTA – OFÖRÄNDRAT) ===== */
 .btn {
-  padding: 16px;
-  border-radius: 12px;
+  background: #222;
   border: none;
-  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 14px;
   color: #fff;
   font-size: 15px;
 }
@@ -42,55 +68,12 @@ body {
   background: #444;
 }
 
-/* ===== PLAYER CONTROLS ===== */
-#player-controls {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  display: flex;
-  gap: 12px;
-  z-index: 9999;
-}
-
-/* ROSA KONTROLLER */
-#player-controls button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #2a2a2a;
-  border: 2px solid #ff4f9a;
-  color: #ff4f9a;
-  font-size: 22px;
-}
-
-/* Tryckt */
-#player-controls button:active {
-  background: #ff4f9a;
-  color: #000;
-}
-
-/* ===== ROTATE NOTICE ===== */
-#rotateNotice {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.92);
-  color: #fff;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 22px;
-  z-index: 10000;
-  pointer-events: none;
-}
-
-/* PORTRAIT: visa text men låt app synas bakom */
+/* ===== ORIENTATION ===== */
 @media (orientation: portrait) {
   #rotateNotice { display: flex; }
-  #app { display: block; }
+  #app { display: block; } /* appen SKA vara kvar */
 }
 
-/* LANDSCAPE: normal vy */
 @media (orientation: landscape) {
   #rotateNotice { display: none; }
   #app { display: block; }
