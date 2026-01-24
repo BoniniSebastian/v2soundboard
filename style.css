@@ -2,14 +2,13 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
   color: #fff;
-  background-color: #000;
 
-  /* Bakgrundsbild */
+  background-color: #000;
   background-image: url("./assets/bg.PNG");
   background-repeat: no-repeat;
   background-position: center center;
-  background-attachment: fixed;
   background-size: cover;
+  background-attachment: fixed;
 }
 
 /* ===== ROTATE NOTICE ===== */
