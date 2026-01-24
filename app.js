@@ -13,8 +13,12 @@ const CATEGORIES = [
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
+// Controls
 const playPauseBtn = document.getElementById("playPauseBtn");
 const stopBtn = document.getElementById("stopBtn");
+
+playPauseBtn.textContent = "▶";
+stopBtn.textContent = "■";
 
 playPauseBtn.onclick = () => {
   if (!currentAudio) return;
@@ -28,12 +32,15 @@ playPauseBtn.onclick = () => {
   }
 };
 
-stopBtn.onclick = stop;
+stopBtn.onclick = () => {
+  stop();
+  playPauseBtn.textContent = "▶";
+};
 
 init();
 
 async function init() {
-  const root = document.getElementById("app");
+  const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
   for (const cat of CATEGORIES) {
@@ -55,47 +62,63 @@ async function init() {
   }
 }
 
-async function loadFolder(folder, grid) {
-  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
+async function loadFolder(folder, gridEl) {
+  const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(res.status);
-
+    const res = await fetch(apiUrl, { cache: "no-store" });
+    if (!res.ok) throw new Error(`GitHub API fel: ${res.status}`);
     const items = await res.json();
 
-    items
-      .filter(f => f.type === "file" && isAudio(f.name))
+    const files = (items || [])
+      .filter(x => x?.type === "file" && isAudio(x.name))
       .sort((a,b) => a.name.localeCompare(b.name, "sv"))
-      .forEach(f => {
-        const btn = document.createElement("button");
-        btn.className = "btn";
-        btn.textContent = pretty(f.name);
-        btn.onclick = () => toggle(btn, f.download_url);
-        grid.appendChild(btn);
-      });
+      .map(x => ({ name: x.name, url: x.download_url }));
 
-  } catch {
-    grid.innerHTML = `<div style="opacity:.6">Kunde inte läsa ${folder}</div>`;
+    if (!files.length) {
+      gridEl.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
+      return;
+    }
+
+    files.forEach(f => {
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.textContent = pretty(f.name);
+      btn.addEventListener("click", () => toggle(btn, f.url));
+      gridEl.appendChild(btn);
+    });
+
+  } catch (e) {
+    console.error(e);
+    gridEl.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
   }
 }
 
 function toggle(btn, url) {
+  // samma knapp igen = stop
   if (currentButton === btn) {
     stop();
+    playPauseBtn.textContent = "▶";
     return;
   }
 
   stop();
 
-  currentAudio = new Audio(url);
-  currentAudio.play();
-  playPauseBtn.textContent = "❚❚";
+  const audio = new Audio(url);
+  audio.preload = "auto";
 
+  audio.play().then(() => {
+    playPauseBtn.textContent = "❚❚";
+  }).catch(() => alert("Kunde inte spela ljudet."));
+
+  currentAudio = audio;
   currentButton = btn;
   btn.classList.add("playing");
 
-  currentAudio.onended = stop;
+  audio.onended = () => {
+    stop();
+    playPauseBtn.textContent = "▶";
+  };
 }
 
 function stop() {
@@ -104,17 +127,23 @@ function stop() {
     currentAudio.currentTime = 0;
   }
   if (currentButton) currentButton.classList.remove("playing");
-
   currentAudio = null;
   currentButton = null;
-  playPauseBtn.textContent = "▶";
-}
-
-function isAudio(name) {
-  const ext = name.split(".").pop().toLowerCase();
-  return AUDIO_EXT.includes(ext);
 }
 
 function pretty(name) {
   return name.replace(/\.[^/.]+$/, "");
+}
+
+function isAudio(name) {
+  if (name === ".keep") return false;
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  return AUDIO_EXT.includes(ext);
+}
+
+function createRoot() {
+  const div = document.createElement("div");
+  div.id = "app";
+  document.body.appendChild(div);
+  return div;
 }
