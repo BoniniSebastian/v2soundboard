@@ -1,48 +1,100 @@
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  color: #fff;
+  background-color: #000;
+
+  /* Bakgrundsbild */
+  background-image: url("./assets/bg.PNG");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+/* ===== ROTATE NOTICE ===== */
+#rotateNotice {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 22px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
 /* ===== PLAYER CONTROLS ===== */
 #player-controls {
   position: fixed;
   top: 16px;
   right: 16px;
   display: flex;
-  gap: 14px;
+  gap: 16px;
   z-index: 10000;
 }
 
 #player-controls button {
-  width: 64px;
-  height: 64px;
-  background: rgba(255,79,154,0.15);
-  border: 3px solid #ff4f9a;
-  color: #ff4f9a;
-  font-size: 28px;
+  width: 72px;
+  height: 72px;
   border-radius: 18px;
+
+  background: #333;
+  border: 4px solid #ff4f9a;
+  color: #ff4f9a;
+
+  font-size: 34px;
+  font-weight: 800;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 #player-controls button:active {
   background: #ff4f9a;
   color: #000;
 }
-/* ===== FORCE LARGE PLAYER BUTTONS ===== */
-#player-controls button {
-  width: 72px !important;
-  height: 72px !important;
-  font-size: 30px !important;
-  border-radius: 20px !important;
-  border: 3px solid #ff4f9a !important;
-  color: #ff4f9a !important;
-  background: rgba(0,0,0,0.6) !important;
 
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+/* ===== APP ===== */
+.section {
+  padding: 16px;
 }
 
-#player-controls button:active {
-  background: #ff4f9a !important;
-  color: #000 !important;
+.section-title {
+  font-size: 28px;
+  margin: 12px 0 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.btn {
+  background: #222;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  color: #fff;
+  font-size: 15px;
+}
+
+.btn.playing {
+  background: #444;
+}
+
+/* ===== ORIENTATION ===== */
+@media (orientation: portrait) {
+  #rotateNotice { display: flex; }
+  #app { display: block; }
+}
+
+@media (orientation: landscape) {
+  #rotateNotice { display: none; }
+  #app { display: block; }
 }
