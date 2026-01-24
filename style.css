@@ -6,16 +6,14 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* App container */
 #app {
-  background: rgba(0,0,0,0.55);
   min-height: 100vh;
   padding: 16px;
+  background: rgba(0,0,0,0.55);
 }
 
-h1 {
-  margin-top: 0;
-}
-
+/* Sections */
 .section {
   margin-bottom: 24px;
 }
@@ -25,12 +23,14 @@ h1 {
   margin-bottom: 8px;
 }
 
+/* Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
 }
 
+/* Buttons */
 .btn {
   padding: 14px;
   border-radius: 10px;
@@ -43,19 +43,52 @@ h1 {
 .btn.playing {
   background: #555;
 }
+
+/* Player controls (RIGHT side) */
+#player-controls {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10000;
+}
+
+#player-controls button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(30,30,30,0.9);
+  color: #fff;
+  font-size: 20px;
+}
+
+/* Rotate notice */
+#rotateNotice {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 22px;
+  padding: 24px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Portrait: visa text men låt appen synas bakom */
 @media (orientation: portrait) {
-  body::before {
-    content: "Vrid telefonen till liggande läge";
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.92);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    z-index: 9999;
-    padding: 24px;
-    text-align: center;
-  }
+  #rotateNotice { display: flex; }
+  #app { display: block; }
+}
+
+/* Landscape: full app */
+@media (orientation: landscape) {
+  #rotateNotice { display: none; }
+  #app { display: block; }
 }
