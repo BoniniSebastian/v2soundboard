@@ -1,6 +1,5 @@
 let currentAudio = null;
 let currentButton = null;
-let isPaused = false;
 
 const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
@@ -20,10 +19,8 @@ async function init() {
   const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
-  // Koppla Play/Paus + Stop (om de finns i index.html)
   hookPlayerControls();
 
-  // Bygg UI
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
@@ -42,7 +39,6 @@ async function init() {
     await loadFolder(cat.folder, grid);
   }
 
-  // Sätt rätt ikon vid start
   updatePlayPauseIcon();
 }
 
@@ -56,10 +52,8 @@ function hookPlayerControls() {
 
       if (currentAudio.paused) {
         currentAudio.play().catch(() => {});
-        isPaused = false;
       } else {
         currentAudio.pause();
-        isPaused = true;
       }
       updatePlayPauseIcon();
     });
@@ -106,7 +100,7 @@ async function loadFolder(folder, gridEl) {
 }
 
 function toggle(btn, url) {
-  // Trycker man på samma igen: STOPP + start om nästa gång (som du gillar)
+  // Tryck på samma knapp igen = STOPP (startar från början nästa gång)
   if (currentButton === btn && currentAudio && !currentAudio.paused) {
     stop();
     updatePlayPauseIcon();
@@ -122,9 +116,8 @@ function toggle(btn, url) {
 
   currentAudio = audio;
   currentButton = btn;
-  isPaused = false;
-
   btn.classList.add("playing");
+
   updatePlayPauseIcon();
 
   audio.onended = () => {
@@ -141,14 +134,12 @@ function stop() {
   if (currentButton) currentButton.classList.remove("playing");
   currentAudio = null;
   currentButton = null;
-  isPaused = false;
 }
 
 function updatePlayPauseIcon() {
   const playPauseBtn = document.getElementById("playPauseBtn");
   if (!playPauseBtn) return;
 
-  // Vill du att den alltid ska visa ⏸ när något spelar:
   if (currentAudio && !currentAudio.paused) playPauseBtn.textContent = "⏸";
   else playPauseBtn.textContent = "▶︎";
 }
