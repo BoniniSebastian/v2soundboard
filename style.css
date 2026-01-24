@@ -19,25 +19,25 @@ body {
 }
 
 .section-title {
-  font-size: 20px;
-  margin-bottom: 8px;
+  font-size: 24px;
+  margin: 10px 0 8px;
 }
 
 /* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
 }
 
-/* Buttons */
+/* Sound buttons */
 .btn {
   padding: 14px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
   background: #2f2f2f;
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .btn.playing {
@@ -63,7 +63,7 @@ body {
   border: none;
   background: rgba(30,30,30,0.9);
   color: #fff;
-  font-size: 20px;
+  font-size: 22px;
 }
 
 /* Rotate notice */
@@ -79,15 +79,16 @@ body {
   text-align: center;
   align-items: center;
   justify-content: center;
+  pointer-events: none; /* <-- VIKTIGT: blockerar inte klick */
 }
 
-/* Portrait: visa text men låt appen synas bakom */
+/* Portrait: visa text men låt app + knappar funka bakom */
 @media (orientation: portrait) {
   #rotateNotice { display: flex; }
   #app { display: block; }
 }
 
-/* Landscape: full app */
+/* Landscape: normal vy */
 @media (orientation: landscape) {
   #rotateNotice { display: none; }
   #app { display: block; }
