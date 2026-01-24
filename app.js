@@ -20,24 +20,10 @@ async function init() {
   const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
-  // === GLOBALA KONTROLLER ===
-  const controls = document.createElement("div");
-  controls.className = "controls";
+  // Koppla Play/Paus + Stop (om de finns i index.html)
+  hookPlayerControls();
 
-  const playPauseBtn = document.createElement("button");
-  playPauseBtn.id = "playPause";
-  playPauseBtn.textContent = "▶";
-  playPauseBtn.onclick = togglePlayPause;
-
-  const stopBtn = document.createElement("button");
-  stopBtn.textContent = "⏹";
-  stopBtn.onclick = stop;
-
-  controls.appendChild(playPauseBtn);
-  controls.appendChild(stopBtn);
-  root.appendChild(controls);
-
-  // === KATEGORIER ===
+  // Bygg UI
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
@@ -55,6 +41,36 @@ async function init() {
 
     await loadFolder(cat.folder, grid);
   }
+
+  // Sätt rätt ikon vid start
+  updatePlayPauseIcon();
+}
+
+function hookPlayerControls() {
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const stopBtn = document.getElementById("stopBtn");
+
+  if (playPauseBtn) {
+    playPauseBtn.addEventListener("click", () => {
+      if (!currentAudio) return;
+
+      if (currentAudio.paused) {
+        currentAudio.play().catch(() => {});
+        isPaused = false;
+      } else {
+        currentAudio.pause();
+        isPaused = true;
+      }
+      updatePlayPauseIcon();
+    });
+  }
+
+  if (stopBtn) {
+    stopBtn.addEventListener("click", () => {
+      stop();
+      updatePlayPauseIcon();
+    });
+  }
 }
 
 async function loadFolder(folder, gridEl) {
@@ -62,62 +78,59 @@ async function loadFolder(folder, gridEl) {
 
   try {
     const res = await fetch(apiUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error(res.status);
+    if (!res.ok) throw new Error(`GitHub API fel: ${res.status}`);
     const items = await res.json();
 
-    const files = items
-      .filter(x => x.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
+    const files = (items || [])
+      .filter(x => x?.type === "file" && isAudio(x.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "sv"))
       .map(x => ({ name: x.name, url: x.download_url }));
+
+    if (!files.length) {
+      gridEl.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
+      return;
+    }
 
     files.forEach(f => {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(f.name);
-      btn.onclick = () => playFromButton(btn, f.url);
+      btn.addEventListener("click", () => toggle(btn, f.url));
       gridEl.appendChild(btn);
     });
 
-  } catch {
-    gridEl.innerHTML = `<div style="opacity:.6">Kunde inte läsa ${folder}</div>`;
+  } catch (e) {
+    console.error(e);
+    gridEl.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
   }
 }
 
-// === LJUDLOGIK ===
-
-function playFromButton(btn, url) {
-  if (currentButton === btn && currentAudio && !isPaused) {
+function toggle(btn, url) {
+  // Trycker man på samma igen: STOPP + start om nästa gång (som du gillar)
+  if (currentButton === btn && currentAudio && !currentAudio.paused) {
     stop();
+    updatePlayPauseIcon();
     return;
   }
 
   stop();
 
   const audio = new Audio(url);
-  audio.play();
+  audio.preload = "auto";
+
+  audio.play().catch(() => alert("Kunde inte spela ljudet."));
 
   currentAudio = audio;
   currentButton = btn;
   isPaused = false;
 
   btn.classList.add("playing");
-  updatePlayIcon();
+  updatePlayPauseIcon();
 
-  audio.onended = stop;
-}
-
-function togglePlayPause() {
-  if (!currentAudio) return;
-
-  if (isPaused) {
-    currentAudio.play();
-    isPaused = false;
-  } else {
-    currentAudio.pause();
-    isPaused = true;
-  }
-
-  updatePlayIcon();
+  audio.onended = () => {
+    stop();
+    updatePlayPauseIcon();
+  };
 }
 
 function stop() {
@@ -125,31 +138,28 @@ function stop() {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
-
   if (currentButton) currentButton.classList.remove("playing");
-
   currentAudio = null;
   currentButton = null;
   isPaused = false;
-
-  updatePlayIcon();
 }
 
-function updatePlayIcon() {
-  const btn = document.getElementById("playPause");
-  if (!btn) return;
+function updatePlayPauseIcon() {
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  if (!playPauseBtn) return;
 
-  btn.textContent = (currentAudio && !isPaused) ? "⏸" : "▶";
+  // Vill du att den alltid ska visa ⏸ när något spelar:
+  if (currentAudio && !currentAudio.paused) playPauseBtn.textContent = "⏸";
+  else playPauseBtn.textContent = "▶︎";
 }
-
-// === HJÄLP ===
 
 function pretty(name) {
   return name.replace(/\.[^/.]+$/, "");
 }
 
 function isAudio(name) {
-  const ext = name.split(".").pop().toLowerCase();
+  if (name === ".keep") return false;
+  const ext = (name.split(".").pop() || "").toLowerCase();
   return AUDIO_EXT.includes(ext);
 }
 
