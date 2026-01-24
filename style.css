@@ -92,4 +92,27 @@ body {
 @media (orientation: landscape) {
   #rotateNotice { display: none; }
   #app { display: block; }
+  /* ===== ROSA ACCENT ===== */
+
+.btn {
+  background: #2a2a2a;
+  border: 1px solid #ff4f9a;
+  color: #fff;
+}
+
+.btn.playing {
+  background: #ff4f9a;
+  box-shadow: 0 0 14px rgba(255, 79, 154, 0.8);
+}
+
+#player-controls button {
+  background: #2a2a2a;
+  border: 2px solid #ff4f9a;
+  color: #ff4f9a;
+}
+
+#player-controls button:active {
+  background: #ff4f9a;
+  color: #000;
+}
 }
