@@ -4,22 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SB Soundboard</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- Cache busting -->
+  <link rel="stylesheet" href="style.css?v=1">
 </head>
 <body>
 
   <!-- Rotate notice -->
-  <div id="rotateNotice">Vrid telefonen till liggande läge</div>
+  <div id="rotateNotice">
+    Vrid telefonen till liggande läge
+  </div>
 
   <!-- Player controls -->
   <div id="player-controls">
-    <button id="playPauseBtn" aria-label="Play/Paus">▶</button>
+    <button id="playPauseBtn" aria-label="Play/Pause">▶</button>
     <button id="stopBtn" aria-label="Stop">■</button>
   </div>
 
   <!-- App -->
   <div id="app"></div>
 
-  <script src="app.js"></script>
+  <!-- Cache busting -->
+  <script src="app.js?v=1"></script>
 </body>
 </html>
