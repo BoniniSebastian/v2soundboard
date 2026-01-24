@@ -1,6 +1,9 @@
 let currentAudio = null;
 let currentButton = null;
 
+// URL till "måltuta" (första filen i sounds/mal)
+let goalHornUrl = null;
+
 const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 
@@ -16,7 +19,9 @@ const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 // Controls
 const playPauseBtn = document.getElementById("playPauseBtn");
 const stopBtn = document.getElementById("stopBtn");
+const goalHornBtn = document.getElementById("goalHornBtn");
 
+// Init icons
 playPauseBtn.textContent = "▶";
 stopBtn.textContent = "■";
 
@@ -35,6 +40,37 @@ playPauseBtn.onclick = () => {
 stopBtn.onclick = () => {
   stop();
   playPauseBtn.textContent = "▶";
+};
+
+// Måltuta-knapp: spelar första GOAL-filen
+goalHornBtn.onclick = () => {
+  if (!goalHornUrl) {
+    alert("Ingen måltuta hittad. Lägg minst en fil i sounds/mal.");
+    return;
+  }
+
+  // Om måltutan redan spelas: stoppa
+  if (currentAudio && !currentAudio.paused && currentAudio.src === goalHornUrl) {
+    stop();
+    playPauseBtn.textContent = "▶";
+    return;
+  }
+
+  stop();
+
+  const audio = new Audio(goalHornUrl);
+  audio.preload = "auto";
+  audio.play().catch(() => alert("Kunde inte spela måltutan."));
+
+  currentAudio = audio;
+  currentButton = null;
+
+  playPauseBtn.textContent = "❚❚";
+
+  audio.onended = () => {
+    stop();
+    playPauseBtn.textContent = "▶";
+  };
 };
 
 init();
@@ -72,19 +108,23 @@ async function loadFolder(folder, gridEl) {
 
     const files = (items || [])
       .filter(x => x?.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
-      .map(x => ({ name: x.name, url: x.download_url }));
+      .sort((a,b) => a.name.localeCompare(b.name, "sv"));
+
+    // Sätt goalHornUrl som första filen i sounds/mal (sorterad)
+    if (folder === "sounds/mal" && files.length > 0) {
+      goalHornUrl = files[0].download_url;
+    }
 
     if (!files.length) {
       gridEl.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
       return;
     }
 
-    files.forEach(f => {
+    files.forEach(file => {
       const btn = document.createElement("button");
       btn.className = "btn";
-      btn.textContent = pretty(f.name);
-      btn.addEventListener("click", () => toggle(btn, f.url));
+      btn.textContent = pretty(file.name);
+      btn.onclick = () => toggle(btn, file.download_url);
       gridEl.appendChild(btn);
     });
 
@@ -106,14 +146,13 @@ function toggle(btn, url) {
 
   const audio = new Audio(url);
   audio.preload = "auto";
-
-  audio.play().then(() => {
-    playPauseBtn.textContent = "❚❚";
-  }).catch(() => alert("Kunde inte spela ljudet."));
+  audio.play().catch(() => alert("Kunde inte spela ljudet."));
 
   currentAudio = audio;
   currentButton = btn;
   btn.classList.add("playing");
+
+  playPauseBtn.textContent = "❚❚";
 
   audio.onended = () => {
     stop();
@@ -126,7 +165,9 @@ function stop() {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
+
   if (currentButton) currentButton.classList.remove("playing");
+
   currentAudio = null;
   currentButton = null;
 }
