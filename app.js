@@ -1,7 +1,7 @@
 let currentAudio = null;
 let currentButton = null;
 
-// URL till "måltuta" (första filen i sounds/mal)
+// URL till "måltuta" (letar i sounds/tuta efter "Goal horn sound effect")
 let goalHornUrl = null;
 
 const OWNER = "BoniniSebastian";
@@ -42,10 +42,10 @@ stopBtn.onclick = () => {
   playPauseBtn.textContent = "▶";
 };
 
-// Måltuta-knapp: spelar första GOAL-filen
+// Måltuta-knapp: spelar "Goal horn sound effect" från sounds/tuta
 goalHornBtn.onclick = () => {
   if (!goalHornUrl) {
-    alert("Ingen måltuta hittad. Lägg minst en fil i sounds/mal.");
+    alert('Ingen måltuta hittad i "sounds/tuta". Döp en fil så att den innehåller "Goal horn sound effect".');
     return;
   }
 
@@ -110,9 +110,11 @@ async function loadFolder(folder, gridEl) {
       .filter(x => x?.type === "file" && isAudio(x.name))
       .sort((a,b) => a.name.localeCompare(b.name, "sv"));
 
-    // Sätt goalHornUrl som första filen i sounds/mal (sorterad)
-    if (folder === "sounds/mal" && files.length > 0) {
-      goalHornUrl = files[0].download_url;
+    // ✅ Välj goal horn från sounds/tuta baserat på filnamn
+    if (folder === "sounds/tuta" && files.length > 0) {
+      const target = "goal horn sound effect";
+      const match = files.find(f => (f.name || "").toLowerCase().includes(target));
+      goalHornUrl = (match || files[0]).download_url; // fallback till första i tuta
     }
 
     if (!files.length) {
