@@ -1,5 +1,6 @@
 let currentAudio = null;
 let currentButton = null;
+let isPaused = false;
 
 const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
@@ -15,11 +16,28 @@ const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
 init();
 
-/* Init */
 async function init() {
-  const root = document.getElementById("app");
+  const root = document.getElementById("app") || createRoot();
   root.innerHTML = "";
 
+  // === GLOBALA KONTROLLER ===
+  const controls = document.createElement("div");
+  controls.className = "controls";
+
+  const playPauseBtn = document.createElement("button");
+  playPauseBtn.id = "playPause";
+  playPauseBtn.textContent = "▶";
+  playPauseBtn.onclick = togglePlayPause;
+
+  const stopBtn = document.createElement("button");
+  stopBtn.textContent = "⏹";
+  stopBtn.onclick = stop;
+
+  controls.appendChild(playPauseBtn);
+  controls.appendChild(stopBtn);
+  root.appendChild(controls);
+
+  // === KATEGORIER ===
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
@@ -37,44 +55,38 @@ async function init() {
 
     await loadFolder(cat.folder, grid);
   }
-
-  hookPlayerControls();
 }
 
-/* Load folder */
 async function loadFolder(folder, gridEl) {
   const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
   try {
     const res = await fetch(apiUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(res.status);
-
     const items = await res.json();
+
     const files = items
       .filter(x => x.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"));
-
-    if (!files.length) {
-      gridEl.innerHTML = `<div style="opacity:.7">Inga ljud</div>`;
-      return;
-    }
+      .sort((a,b) => a.name.localeCompare(b.name, "sv"))
+      .map(x => ({ name: x.name, url: x.download_url }));
 
     files.forEach(f => {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(f.name);
-      btn.onclick = () => toggle(btn, f.download_url);
+      btn.onclick = () => playFromButton(btn, f.url);
       gridEl.appendChild(btn);
     });
 
-  } catch (e) {
-    gridEl.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
+  } catch {
+    gridEl.innerHTML = `<div style="opacity:.6">Kunde inte läsa ${folder}</div>`;
   }
 }
 
-/* Toggle play/stop */
-function toggle(btn, url) {
-  if (currentButton === btn) {
+// === LJUDLOGIK ===
+
+function playFromButton(btn, url) {
+  if (currentButton === btn && currentAudio && !isPaused) {
     stop();
     return;
   }
@@ -82,57 +94,68 @@ function toggle(btn, url) {
   stop();
 
   const audio = new Audio(url);
-  audio.preload = "auto";
-  audio.play().catch(() => {});
+  audio.play();
 
   currentAudio = audio;
   currentButton = btn;
+  isPaused = false;
+
   btn.classList.add("playing");
+  updatePlayIcon();
 
   audio.onended = stop;
 }
 
-/* Stop */
+function togglePlayPause() {
+  if (!currentAudio) return;
+
+  if (isPaused) {
+    currentAudio.play();
+    isPaused = false;
+  } else {
+    currentAudio.pause();
+    isPaused = true;
+  }
+
+  updatePlayIcon();
+}
+
 function stop() {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
+
   if (currentButton) currentButton.classList.remove("playing");
+
   currentAudio = null;
   currentButton = null;
+  isPaused = false;
+
+  updatePlayIcon();
 }
 
-/* Player controls */
-function hookPlayerControls() {
-  const playPauseBtn = document.getElementById("playPauseBtn");
-  const stopBtn = document.getElementById("stopBtn");
+function updatePlayIcon() {
+  const btn = document.getElementById("playPause");
+  if (!btn) return;
 
-  playPauseBtn.onclick = () => {
-    if (!currentAudio) return;
-
-    if (currentAudio.paused) {
-      currentAudio.play();
-      playPauseBtn.textContent = "⏸";
-    } else {
-      currentAudio.pause();
-      playPauseBtn.textContent = "▶︎";
-    }
-  };
-
-  stopBtn.onclick = () => {
-    stop();
-    playPauseBtn.textContent = "▶︎";
-  };
+  btn.textContent = (currentAudio && !isPaused) ? "⏸" : "▶";
 }
 
-/* Utils */
+// === HJÄLP ===
+
 function pretty(name) {
   return name.replace(/\.[^/.]+$/, "");
 }
 
 function isAudio(name) {
-  if (name === ".keep") return false;
   const ext = name.split(".").pop().toLowerCase();
   return AUDIO_EXT.includes(ext);
+}
+
+function createRoot() {
+  const div = document.createElement("div");
+  div.id = "app";
+  document.body.appendChild(div);
+  return div;
 }
