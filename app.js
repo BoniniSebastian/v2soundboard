@@ -112,7 +112,7 @@ async function loadFolder(folder, gridEl) {
 
     // ✅ Välj goal horn från sounds/tuta baserat på filnamn
     if (folder === "sounds/tuta" && files.length > 0) {
-      const target = "goal horn sound effect";
+      const target = "goal horn sound effect.mp3";
       const match = files.find(f => (f.name || "").toLowerCase().includes(target));
       goalHornUrl = (match || files[0]).download_url; // fallback till första i tuta
     }
