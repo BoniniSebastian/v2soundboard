@@ -5,7 +5,7 @@
   --pink: #ff4f9a;
   --btn-bg: #222;
   --btn-bg-playing: #333;
-  --overlay: rgba(0,0,0,0.55);
+  --overlay: rgba(0,0,0,0.6); /* lite mörkare i stående */
 }
 
 *{
@@ -24,29 +24,17 @@ body{
 }
 
 /* =========================
-   ROTATE NOTICE (PORTRAIT)
+   ROTATE OVERLAY (INGEN TEXT)
    ========================= */
 #rotateNotice{
   position: fixed;
   inset: 0;
 
-  display: none;
-  align-items: flex-start;
-  justify-content: center;
-
-  padding-top: 18vh;
-
+  display: none;           /* visas bara i portrait */
   background: var(--overlay);
-  color: #fff;
-
-  font-size: 26px;
-  font-weight: 800;
-  white-space: nowrap;
-  text-align: center;
-  text-shadow: 0 6px 24px rgba(0,0,0,0.65);
 
   z-index: 9999;
-  pointer-events: none; /* får aldrig blocka klick */
+  pointer-events: none;    /* blockerar aldrig klick */
 }
 
 /* =========================
@@ -175,7 +163,7 @@ body{
    ORIENTATION
    ========================= */
 @media (orientation: portrait){
-  #rotateNotice{ display: flex; }
+  #rotateNotice{ display: block; }
 }
 
 @media (orientation: landscape){
