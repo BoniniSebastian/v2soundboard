@@ -1,9 +1,11 @@
+const FADE_MS = 250;
+
 let currentAudio = null;
 let currentButton = null;
 let goalHornUrl = null;
 
 const OWNER = "BoniniSebastian";
-const REPO = "v2soundboard";
+const REPO  = "v2soundboard";
 
 const CATEGORIES = [
   { label: "SOUNDS", folder: "sounds/tuta" },
@@ -14,12 +16,10 @@ const CATEGORIES = [
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
+/* ===== CONTROLS ===== */
 const playPauseBtn = document.getElementById("playPauseBtn");
 const stopBtn = document.getElementById("stopBtn");
 const goalHornBtn = document.getElementById("goalHornBtn");
-
-playPauseBtn.textContent = "▶";
-stopBtn.textContent = "■";
 
 playPauseBtn.onclick = () => {
   if (!currentAudio) return;
@@ -28,23 +28,29 @@ playPauseBtn.onclick = () => {
     currentAudio.play();
     playPauseBtn.textContent = "❚❚";
   } else {
-    currentAudio.pause();
+    fadePause(currentAudio);
     playPauseBtn.textContent = "▶";
   }
 };
 
-stopBtn.onclick = () => stop();
-
-goalHornBtn.onclick = () => {
-  if (!goalHornUrl) return alert("Ingen måltuta hittad");
+stopBtn.onclick = () => {
   stop();
-  const a = new Audio(goalHornUrl);
-  a.play();
-  currentAudio = a;
-  playPauseBtn.textContent = "❚❚";
-  a.onended = stop;
+  playPauseBtn.textContent = "▶";
 };
 
+goalHornBtn.onclick = () => {
+  if (!goalHornUrl) return;
+
+  stop();
+  const audio = new Audio(goalHornUrl);
+  audio.play();
+  currentAudio = audio;
+  playPauseBtn.textContent = "❚❚";
+
+  audio.onended = () => stop();
+};
+
+/* ===== INIT ===== */
 init();
 
 async function init() {
@@ -62,7 +68,8 @@ async function init() {
     const grid = document.createElement("div");
     grid.className = "grid";
 
-    section.append(title, grid);
+    section.appendChild(title);
+    section.appendChild(grid);
     root.appendChild(section);
 
     await loadFolder(cat.folder, grid);
@@ -70,50 +77,87 @@ async function init() {
 }
 
 async function loadFolder(folder, grid) {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}`, { cache: "no-store" });
-    const items = await res.json();
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
-    const files = items.filter(f =>
-      f.type === "file" &&
-      AUDIO_EXT.includes(f.name.split(".").pop().toLowerCase())
-    );
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    const files = (await res.json())
+      .filter(f => f.type === "file" && isAudio(f.name))
+      .sort((a,b) => a.name.localeCompare(b.name,"sv"));
 
     if (folder === "sounds/tuta") {
-      const horn = files.find(f => f.name.toLowerCase().includes("goal horn"));
-      if (horn) goalHornUrl = horn.download_url;
+      const match = files.find(f =>
+        f.name.toLowerCase().includes("goal horn sound effect")
+      );
+      goalHornUrl = (match || files[0])?.download_url;
     }
 
     files.forEach(f => {
       const btn = document.createElement("button");
       btn.className = "btn";
-      btn.textContent = f.name.replace(/\.[^/.]+$/, "");
+      btn.textContent = pretty(f.name);
       btn.onclick = () => play(btn, f.download_url);
       grid.appendChild(btn);
     });
+
   } catch {
-    grid.textContent = `Kunde inte läsa ${folder}`;
+    grid.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
   }
 }
 
+/* ===== PLAY ===== */
 function play(btn, url) {
   stop();
-  const a = new Audio(url);
-  a.play();
-  currentAudio = a;
+
+  const audio = new Audio(url);
+  audio.play();
+
+  currentAudio = audio;
   currentButton = btn;
   btn.classList.add("playing");
   playPauseBtn.textContent = "❚❚";
-  a.onended = stop;
+
+  audio.onended = () => stop();
+}
+
+/* ===== STOP / FADE ===== */
+function fadePause(audio) {
+  fadeOut(audio, () => audio.pause());
 }
 
 function stop() {
-  if (currentAudio) {
+  if (currentAudio) fadeOut(currentAudio, () => {
     currentAudio.pause();
     currentAudio.currentTime = 0;
-  }
+  });
+
   if (currentButton) currentButton.classList.remove("playing");
+
   currentAudio = null;
   currentButton = null;
-  playPauseBtn.textContent = "▶";
+}
+
+function fadeOut(audio, done) {
+  const start = audio.volume;
+  const t0 = performance.now();
+
+  function step(t) {
+    const p = Math.min(1, (t - t0) / FADE_MS);
+    audio.volume = start * (1 - p);
+    if (p < 1) requestAnimationFrame(step);
+    else {
+      audio.volume = start;
+      done?.();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+/* ===== HELPERS ===== */
+function pretty(name) {
+  return name.replace(/\.[^/.]+$/, "");
+}
+
+function isAudio(name) {
+  return AUDIO_EXT.includes(name.split(".").pop().toLowerCase());
 }
