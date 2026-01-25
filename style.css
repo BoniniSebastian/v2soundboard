@@ -1,182 +1,121 @@
 :root{
-  --pink: #ff4f9a;
-
-  --tuta: #ff4f9a;      /* rosa */
-  --goal: #ffd34d;      /* guld */
-  --utvisning: #ff3b30; /* röd */
-  --avbrott: #38b6ff;   /* blå */
+  --pink:#ff4f9a;
+  --btn:#222;
+  --btnPlaying:#444;
 }
 
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  color: #fff;
-  background-color: #000;
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+  color:#fff;
+  background-color:#000;
 
   /* Bakgrundsbild */
-  background-image: url("./assets/bg.PNG");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
-
-  min-height: 100vh;
+  background-image:url("./assets/bg.PNG");
+  background-repeat:no-repeat;
+  background-position:center center;
+  background-size:cover;
+  background-attachment:fixed;
 }
 
-/* iOS gillar inte background-attachment: fixed, så vi kör säkert läge */
-@supports (-webkit-touch-callout: none) {
-  body { background-attachment: scroll; }
-}
-
-/* ===== ROTATE NOTICE (porträtt) ===== */
+/* ===== ROTATE NOTICE ===== */
 #rotateNotice{
   position: fixed;
   top: 12px;
   left: 12px;
   right: 12px;
 
-  /* gör plats åt knapparna uppe till höger */
-  padding: 12px 230px 12px 14px;
-
+  padding: 14px 16px;
   background: rgba(0,0,0,0.55);
   border: 1px solid rgba(255,79,154,0.35);
   border-radius: 14px;
 
   color: #fff;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
 
   display: none;
   pointer-events: none;
 
-  /* LÄGG TEXTEN ÖVER KNAPPARNA (men klick går igenom pga pointer-events:none) */
-  z-index: 20000;
-  backdrop-filter: blur(6px);
+  z-index: 30000;          /* över knapparna */
+  backdrop-filter: blur(8px);
 }
 
 /* ===== PLAYER CONTROLS ===== */
 #player-controls{
   position: fixed;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   display: flex;
   gap: 12px;
-  z-index: 10000;
+  z-index: 20000;
 }
 
-/* Stora rosa knappar */
 #player-controls button{
   width: 74px;
   height: 74px;
   border-radius: 18px;
-  background: rgba(20,20,20,0.88);
-  border: 4px solid var(--pink);
+
+  background: rgba(0,0,0,0.55);
+  border: 3px solid var(--pink);
   color: var(--pink);
-  font-size: 30px;
+
+  font-size: 32px;
   line-height: 1;
-  display: grid;
-  place-items: center;
 
-  box-shadow:
-    0 0 14px rgba(255, 79, 154, 0.55),
-    0 0 30px rgba(255, 79, 154, 0.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
 
-  backdrop-filter: blur(6px);
+  box-shadow: 0 0 0 rgba(255,79,154,0);
+  transition: transform .08s ease, box-shadow .15s ease;
 }
 
 #player-controls button:active{
-  transform: scale(0.98);
-  background: rgba(255,79,154,0.18);
+  transform: scale(0.97);
 }
 
-/* ===== APP LAYOUT ===== */
+#player-controls button.glow{
+  box-shadow: 0 0 22px rgba(255,79,154,0.85), 0 0 60px rgba(255,79,154,0.35);
+}
+
+/* ===== APP ===== */
 .section{
-  padding: 18px 18px 10px;
+  padding: 16px;
 }
 
 .section-title{
-  font-size: 30px;
-  margin: 16px 0 12px;
-  letter-spacing: 0.5px;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+  font-size: 28px;
+  margin: 12px 0 12px;
 }
 
 .grid{
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
 }
 
-/* Musikknappar (ska vara svarta som innan) */
 .btn{
-  background: rgba(20,20,20,0.78);
-  border-radius: 16px;
-  padding: 16px 14px;
+  background: var(--btn);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
   color: #fff;
-  border: 2px solid rgba(255,255,255,0.06);
-  font-size: 16px;
-  text-align: center;
-  backdrop-filter: blur(6px);
+  font-size: 15px;
 }
 
-/* Lite “kategori-border” (utan att ändra svartheten) */
-.btn.cat-tuta{      border-color: rgba(255, 79, 154, 0.35); }
-.btn.cat-mal{       border-color: rgba(255, 211, 77, 0.35); }
-.btn.cat-utvisning{ border-color: rgba(255, 59, 48, 0.35); }
-.btn.cat-avbrott{   border-color: rgba(56, 182, 255, 0.35); }
-
-/* ===== GLOW + PULSE ===== */
-@keyframes glowPulse {
-  0%   { transform: translateZ(0); }
-  50%  { transform: translateZ(0) scale(1.01); }
-  100% { transform: translateZ(0); }
-}
-
-/* Bas glow när en knapp spelar */
 .btn.playing{
-  background: rgba(25,25,25,0.86);
-  animation: glowPulse 1.4s ease-in-out infinite;
-}
-
-/* Glow per kategori när den spelar */
-.btn.playing.cat-tuta{
-  box-shadow: 0 0 14px rgba(255,79,154,0.55), 0 0 34px rgba(255,79,154,0.35);
-}
-.btn.playing.cat-mal{
-  box-shadow: 0 0 14px rgba(255,211,77,0.55), 0 0 34px rgba(255,211,77,0.35);
-}
-.btn.playing.cat-utvisning{
-  box-shadow: 0 0 14px rgba(255,59,48,0.55), 0 0 34px rgba(255,59,48,0.35);
-}
-.btn.playing.cat-avbrott{
-  box-shadow: 0 0 14px rgba(56,182,255,0.55), 0 0 34px rgba(56,182,255,0.35);
-}
-
-/* Extra “neon” på goal horn (om du vill markera den ännu mer) */
-.btn.playing.goal-horn{
-  animation: glowPulse 0.9s ease-in-out infinite;
-  box-shadow: 0 0 18px rgba(255,79,154,0.75), 0 0 46px rgba(255,79,154,0.55);
-  filter: drop-shadow(0 0 12px rgba(255,79,154,0.7));
+  background: var(--btnPlaying);
 }
 
 /* ===== ORIENTATION ===== */
 @media (orientation: portrait){
-  #rotateNotice{ display: flex; }
-  #app{ display: block; } /* visa knappar bakom */
+  #rotateNotice{ display:block; }
+  #player-controls{ top: 72px; } /* knappar under texten */
 }
 
 @media (orientation: landscape){
-  #rotateNotice{ display: none; }
-  #app{ display: block; }
-}
-@media (orientation: portrait) {
-  #rotateNotice { display: block; }
-  #player-controls { top: 64px; } /* flytta knapparna ner lite i portrait */
-}
-
-@media (orientation: landscape) {
-  #rotateNotice { display: none; }
-  #player-controls { top: 12px; }
+  #rotateNotice{ display:none; }
+  #player-controls{ top: 12px; }
 }
