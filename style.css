@@ -3,49 +3,28 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
   color: #fff;
-  background-color: #000;
-  background-image: url("./assets/bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background:
+    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+    url("./assets/bg.PNG") center / cover no-repeat fixed,
+    #000;
 }
 
-/* ===== APP ===== */
-#app {
-  padding: 20px;
-}
-
-/* ===== SECTIONS ===== */
-.section {
-  margin-bottom: 28px;
-}
-
-.section-title {
+/* ===== ROTATE NOTICE ===== */
+#rotateNotice {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 14px;
+  font-weight: 600;
+  background: rgba(0,0,0,0.55);
+  z-index: 9000;
+  pointer-events: none;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.btn {
-  background: #222;
-  border: none;
-  border-radius: 14px;
-  padding: 16px;
-  color: #fff;
-  font-size: 15px;
-}
-
-.btn.playing {
-  background: #444;
-}
-
-/* ===== CONTROLS ===== */
+/* ===== PLAYER CONTROLS ===== */
 #player-controls {
   position: fixed;
   bottom: 16px;
@@ -53,37 +32,50 @@ body {
   transform: translateX(-50%);
   display: flex;
   gap: 14px;
-  z-index: 10001;
+  z-index: 10000;
 }
 
 #player-controls button {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  font-size: 26px;
+  border-radius: 18px;
   background: #111;
   border: 3px solid #ff4f9a;
   color: #ff4f9a;
-  box-shadow: 0 0 18px rgba(255,79,154,0.9);
+  font-size: 26px;
+  box-shadow: 0 0 18px rgba(255,79,154,.8);
 }
 
-/* ===== ROTATE OVERLAY ===== */
-#rotateNotice {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65); /* MÖRKARE än innan */
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  pointer-events: none;
+/* ===== SECTIONS ===== */
+.section {
+  padding: 20px;
 }
 
-.rotate-text {
-  font-size: 24px;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap; /* EN RAD */
+.section-title {
+  font-size: 28px;
+  margin: 20px 0 10px;
+  opacity: .9;
+}
+
+/* ===== GRID ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+/* ===== SOUND BUTTONS ===== */
+.btn {
+  background: #222;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  color: #fff;
+}
+
+.btn.playing {
+  background: #444;
 }
 
 /* ===== ORIENTATION ===== */
