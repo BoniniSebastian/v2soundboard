@@ -1,121 +1,120 @@
 :root{
-  --pink:#ff4f9a;
-  --btn:#222;
-  --btnPlaying:#444;
+  --pink: #ff4f9a;
+  --btnbg: #222;
 }
 
-body{
-  margin:0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-  color:#fff;
-  background-color:#000;
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  color: #fff;
 
-  /* Bakgrundsbild */
-  background-image:url("./assets/bg.PNG");
-  background-repeat:no-repeat;
-  background-position:center center;
-  background-size:cover;
-  background-attachment:fixed;
+  /* Bakgrund */
+  background-color: #000;
+  background-image: url("./assets/bg.PNG"); /* <-- matcha FILNAMN exakt */
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
 }
 
-/* ===== ROTATE NOTICE ===== */
-#rotateNotice{
+/* ===== ROTATE NOTICE (PORTRAIT) ===== */
+#rotateNotice {
   position: fixed;
-  top: 12px;
-  left: 12px;
-  right: 12px;
+  left: 14px;
+  right: 14px;
+  top: 14px;
 
   padding: 14px 16px;
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,79,154,0.35);
   border-radius: 14px;
 
-  color: #fff;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.2;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
 
-  display: none;
-  pointer-events: none;
+  font-size: 22px;
+  font-weight: 650;
 
-  z-index: 30000;          /* över knapparna */
-  backdrop-filter: blur(8px);
+  z-index: 9999;
+
+  display: none;             /* bara portrait */
+  pointer-events: none;      /* låt appen synas/klickas bakom */
 }
 
-/* ===== PLAYER CONTROLS ===== */
-#player-controls{
+/* ===== PLAYER CONTROLS (ROSA) ===== */
+#player-controls {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  top: 14px;
+  right: 14px;
   display: flex;
-  gap: 12px;
-  z-index: 20000;
+  gap: 14px;
+  z-index: 10000;
 }
 
-#player-controls button{
-  width: 74px;
-  height: 74px;
+#player-controls button {
+  width: 82px;               /* större */
+  height: 82px;              /* större */
   border-radius: 18px;
 
-  background: rgba(0,0,0,0.55);
-  border: 3px solid var(--pink);
-  color: var(--pink);
+  background: rgba(0,0,0,0.40);
+  border: 4px solid var(--pink);
 
-  font-size: 32px;
+  color: var(--pink);
+  font-size: 34px;
   line-height: 1;
 
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display: grid;
+  place-items: center;
 
-  box-shadow: 0 0 0 rgba(255,79,154,0);
-  transition: transform .08s ease, box-shadow .15s ease;
+  box-shadow:
+    0 0 0 4px rgba(255,79,154,0.12),
+    0 0 22px rgba(255,79,154,0.55);
 }
 
-#player-controls button:active{
-  transform: scale(0.97);
+/* lite “tryck-känsla” */
+#player-controls button:active {
+  transform: scale(0.98);
 }
 
-#player-controls button.glow{
-  box-shadow: 0 0 22px rgba(255,79,154,0.85), 0 0 60px rgba(255,79,154,0.35);
+/* ===== APP LAYOUT ===== */
+.section {
+  padding: 18px 16px;
 }
 
-/* ===== APP ===== */
-.section{
-  padding: 16px;
-}
-
-.section-title{
+.section-title {
   font-size: 28px;
   margin: 12px 0 12px;
+  font-weight: 700;
+  text-transform: none;
 }
 
-.grid{
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
 }
 
-.btn{
-  background: var(--btn);
+.btn {
+  background: #222;          /* musikknappar = svarta som innan */
   border: none;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px 14px;
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
 }
 
-.btn.playing{
-  background: var(--btnPlaying);
+.btn.playing {
+  background: #444;
 }
 
 /* ===== ORIENTATION ===== */
-@media (orientation: portrait){
-  #rotateNotice{ display:block; }
-  #player-controls{ top: 72px; } /* knappar under texten */
+@media (orientation: portrait) {
+  #rotateNotice { display: block; }
+
+  /* Dämpa appen i portrait så den syns “bakom” texten */
+  #app { opacity: 0.22; }
 }
 
-@media (orientation: landscape){
-  #rotateNotice{ display:none; }
-  #player-controls{ top: 12px; }
+@media (orientation: landscape) {
+  #rotateNotice { display: none; }
+  #app { opacity: 1; }
 }
