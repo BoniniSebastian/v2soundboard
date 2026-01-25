@@ -31,7 +31,10 @@ body {
   font-size: 26px;
   font-weight: 700;
   text-align: center;
-  padding: 0 16px;
+
+  white-space: nowrap;   /* 🔑 EN RAD */
+  max-width: none;       /* 🔑 ingen radbrytning */
+  padding: 0;
 
   z-index: 20;
 }
@@ -58,20 +61,14 @@ body {
 /* ===== PLAYER CONTROLS (ROSA, NEDKANT) ===== */
 #player-controls {
   position: fixed;
-
+  bottom: 24px;          /* 🔽 nedre kanten */
   left: 50%;
   transform: translateX(-50%);
 
-  bottom: 18px;              /* nedkant */
-  top: auto;
-  right: auto;
-
   display: flex;
   gap: 14px;
-  z-index: 10000;
 
-  /* så de inte ligger på Safari-bar helt */
-  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 30;
 }
 
 #player-controls button {
@@ -126,17 +123,31 @@ body {
 
 /* ===== ORIENTATION ===== */
 @media (orientation: portrait) {
-  #rotateNotice { display: block; }
-  #app { opacity: 0.22; }
+  #rotateNotice {
+    display: block;
+  }
 
-  /* så appen inte hamnar under kontrollerna i portrait */
-  body { padding-bottom: 120px; }
+  #player-controls {
+    display: flex;
+  }
+
+  #app {
+    pointer-events: none; /* låser appen i stående */
+    opacity: 0.35;
+  }
 }
 
 @media (orientation: landscape) {
-  #rotateNotice { display: none; }
-  #app { opacity: 1; }
+  #rotateNotice {
+    display: none;
+  }
 
-  /* i landscape kan kontrollerna vara lite lägre men inte i vägen */
-  body { padding-bottom: 110px; }
+  #player-controls {
+    display: none;
+  }
+
+  #app {
+    pointer-events: auto;
+    opacity: 1;
+  }
 }
