@@ -1,6 +1,4 @@
-// =====================
-// Fade settings
-// =====================
+// ===== Fade (pause/stop) =====
 const FADE_MS = 250; // 200–300ms känns bra
 let fadeRaf = null;
 
@@ -10,7 +8,7 @@ function cancelFade() {
 }
 
 function fadeOut(audio, ms, done) {
-  if (!audio) { done?.(); return; }
+  if (!audio) return done?.();
   cancelFade();
 
   const startVol = (typeof audio.volume === "number") ? audio.volume : 1;
@@ -25,7 +23,7 @@ function fadeOut(audio, ms, done) {
     } else {
       fadeRaf = null;
       done?.();
-      audio.volume = startVol; // återställ för nästa gång
+      audio.volume = startVol; // återställ
     }
   }
 
@@ -40,53 +38,44 @@ function fadePause(audio) {
 function fadeStop(audio) {
   if (!audio) return;
   if (audio.paused) { audio.currentTime = 0; return; }
-
   fadeOut(audio, FADE_MS, () => {
     audio.pause();
     audio.currentTime = 0;
   });
 }
 
-// =====================
-// App state
-// =====================
+// ===== State =====
 let currentAudio = null;
 let currentButton = null;
 
-// Måltuta-URL (hämtas från sounds/tuta)
+// URL till måltuta (Goal horn sound effect från sounds/tuta)
 let goalHornUrl = null;
 
 const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 
 const CATEGORIES = [
-  { label: "SOUNDS",   folder: "sounds/tuta" },
-  { label: "GOAL",     folder: "sounds/mal" },
-  { label: "Utvisning",folder: "sounds/utvisning" },
-  { label: "Avbrott",  folder: "sounds/avbrott" }
+  { label: "SOUNDS",    folder: "sounds/tuta" },
+  { label: "GOAL",      folder: "sounds/mal" },
+  { label: "Utvisning", folder: "sounds/utvisning" },
+  { label: "Avbrott",   folder: "sounds/avbrott" } // OBS: litet s i sounds
 ];
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
-// =====================
-// Controls
-// =====================
+// ===== Controls =====
 const playPauseBtn = document.getElementById("playPauseBtn");
-const stopBtn      = document.getElementById("stopBtn");
-const goalHornBtn  = document.getElementById("goalHornBtn");
+const stopBtn = document.getElementById("stopBtn");
+const goalHornBtn = document.getElementById("goalHornBtn");
 
-// Ikoner (enkla och tydliga)
-function setPlayIcon()  { playPauseBtn.textContent = "▶"; }
-function setPauseIcon() { playPauseBtn.textContent = "❚❚"; }
-
+// Init icons
 setPlayIcon();
-stopBtn.textContent = "■";
-goalHornBtn.textContent = "📣";
 
 playPauseBtn.onclick = () => {
   if (!currentAudio) return;
 
   if (currentAudio.paused) {
+    cancelFade();
     currentAudio.play().catch(() => {});
     setPauseIcon();
   } else {
@@ -96,24 +85,22 @@ playPauseBtn.onclick = () => {
 };
 
 stopBtn.onclick = () => {
-  stop();
-  setPlayIcon();
+  stop(true);
 };
 
 goalHornBtn.onclick = () => {
   if (!goalHornUrl) {
-    alert('Ingen måltuta hittad i "sounds/tuta". Döp en fil så att den innehåller "Goal horn sound effect".');
+    alert('Hittar ingen måltuta i "sounds/tuta". Döp en fil så att den innehåller "Goal horn sound effect".');
     return;
   }
 
-  // Om måltutan redan spelas -> stop
+  // Om måltutan redan spelar: stoppa
   if (currentAudio && !currentAudio.paused && currentAudio.src === goalHornUrl) {
-    stop();
-    setPlayIcon();
+    stop(true);
     return;
   }
 
-  stop();
+  stop(false);
 
   const audio = new Audio(goalHornUrl);
   audio.preload = "auto";
@@ -121,17 +108,13 @@ goalHornBtn.onclick = () => {
 
   currentAudio = audio;
   currentButton = null;
+
   setPauseIcon();
 
-  audio.onended = () => {
-    stop();
-    setPlayIcon();
-  };
+  audio.onended = () => stop(true);
 };
 
-// =====================
-// Init
-// =====================
+// ===== App init =====
 init();
 
 async function init() {
@@ -169,11 +152,10 @@ async function loadFolder(folder, gridEl) {
       .filter(x => x?.type === "file" && isAudio(x.name))
       .sort((a,b) => (a.name || "").localeCompare((b.name || ""), "sv"));
 
-    // Välj måltuta: försök matcha filnamn i sounds/tuta
-    if (folder === "sounds/tuta" && files.length) {
-      const target = "goal horn sound effect";
-      const match = files.find(f => (f.name || "").toLowerCase().includes(target));
-      goalHornUrl = (match || files[0]).download_url;
+    // Måltuta: välj fil i sounds/tuta som innehåller "goal horn sound effect"
+    if (folder === "sounds/tuta" && files.length > 0) {
+      const match = files.find(f => (f.name || "").toLowerCase().includes("goal horn sound effect"));
+      goalHornUrl = (match || files[0]).download_url; // fallback första i tuta
     }
 
     if (!files.length) {
@@ -185,6 +167,7 @@ async function loadFolder(folder, gridEl) {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(file.name);
+
       btn.onclick = () => toggle(btn, file.download_url);
       gridEl.appendChild(btn);
     });
@@ -196,14 +179,13 @@ async function loadFolder(folder, gridEl) {
 }
 
 function toggle(btn, url) {
-  // Samma knapp igen = STOP (från början nästa gång)
+  // samma knapp igen = stop (från början nästa gång)
   if (currentButton === btn) {
-    stop();
-    setPlayIcon();
+    stop(true);
     return;
   }
 
-  stop();
+  stop(false);
 
   const audio = new Audio(url);
   audio.preload = "auto";
@@ -212,20 +194,28 @@ function toggle(btn, url) {
   currentAudio = audio;
   currentButton = btn;
   btn.classList.add("playing");
+
   setPauseIcon();
 
-  audio.onended = () => {
-    stop();
-    setPlayIcon();
-  };
+  audio.onended = () => stop(true);
 }
 
-function stop() {
+function stop(resetIcon) {
   if (currentAudio) fadeStop(currentAudio);
   if (currentButton) currentButton.classList.remove("playing");
 
   currentAudio = null;
   currentButton = null;
+
+  if (resetIcon) setPlayIcon();
+}
+
+function setPlayIcon(){
+  playPauseBtn.textContent = "▶";
+}
+
+function setPauseIcon(){
+  playPauseBtn.textContent = "❚❚"; // två vita streck
 }
 
 function pretty(name) {
@@ -234,7 +224,7 @@ function pretty(name) {
 
 function isAudio(name) {
   if (name === ".keep") return false;
-  const ext = (name.split(".").pop() || "").toLowerCase();
+  const ext = ((name || "").split(".").pop() || "").toLowerCase();
   return AUDIO_EXT.includes(ext);
 }
 
