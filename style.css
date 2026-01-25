@@ -1,88 +1,145 @@
 /* ===== BAS ===== */
-body {
-  margin: 0;
+:root{
+  --pink: #ff4f9a;
+  --btn-bg: #222;
+  --btn-bg-playing: #444;
+  --overlay: rgba(0,0,0,0.55);
+  --text-dim: rgba(255,255,255,0.75);
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  color: #fff;
+  color:#fff;
+
+  /* Bakgrund + mörk overlay */
   background:
     linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
-    url("./assets/bg.png") center / cover no-repeat fixed,
-    #000;
+    url("./assets/bg.png") center/cover no-repeat fixed;
+  background-color:#000;
 }
 
-/* ===== ROTATE NOTICE ===== */
-#rotateNotice {
+/* ===== ROTATE NOTICE (overlay) ===== */
+#rotateNotice{
   position: fixed;
   inset: 0;
-  display: none;
-  align-items: center;
+
+  display: none;             /* visas bara i portrait */
+  align-items: flex-start;   /* vi styr med padding-top */
   justify-content: center;
+
+  padding-top: 18vh;         /* flyttar ner texten lite */
   text-align: center;
-  font-size: 26px;
-  font-weight: 600;
-  background: rgba(0,0,0,0.55);
-  z-index: 9000;
-  pointer-events: none;
+
+  background: var(--overlay);
+  color: #fff;
+
+  z-index: 9999;
+  pointer-events: none;      /* VIKTIGT: får aldrig blocka klick */
 }
 
-/* ===== PLAYER CONTROLS ===== */
-#player-controls {
+#rotateNotice{
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  white-space: nowrap;       /* EN RAD */
+  text-shadow: 0 6px 24px rgba(0,0,0,0.65);
+}
+
+/* ===== PLAYER CONTROLS (rosa) ===== */
+#player-controls{
   position: fixed;
-  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+
   display: flex;
   gap: 14px;
+
   z-index: 10000;
 }
 
-#player-controls button {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: #111;
-  border: 3px solid #ff4f9a;
-  color: #ff4f9a;
-  font-size: 26px;
-  box-shadow: 0 0 18px rgba(255,79,154,.8);
-}
+#player-controls button{
+  width: 86px;
+  height: 86px;
 
-/* ===== SECTIONS ===== */
-.section {
-  padding: 20px;
-}
-
-.section-title {
-  font-size: 28px;
-  margin: 20px 0 10px;
-  opacity: .9;
-}
-
-/* ===== GRID ===== */
-.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  place-items: center;
+
+  background: rgba(20,20,20,0.85);
+  border: 4px solid var(--pink);
+  border-radius: 22px;
+
+  color: var(--pink);
+  font-size: 34px;
+  line-height: 1;
+
+  /* Glow */
+  box-shadow:
+    0 0 0 2px rgba(255,79,154,0.20),
+    0 0 22px rgba(255,79,154,0.65),
+    0 0 50px rgba(255,79,154,0.35);
+
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== SOUND BUTTONS ===== */
-.btn {
-  background: #222;
-  border-radius: 14px;
-  padding: 16px;
-  font-size: 16px;
+#player-controls button:active{
+  transform: translateY(1px);
+}
+
+/* ===== APP LAYOUT ===== */
+.section{
+  padding: 18px 16px 10px;
+}
+
+.section-title{
+  font-size: 34px;
+  font-weight: 900;
+  margin: 10px 0 12px;
+  letter-spacing: .6px;
+  text-shadow: 0 6px 24px rgba(0,0,0,0.45);
+}
+
+.grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* Musikknappar (svarta) */
+.btn{
+  background: var(--btn-bg);
   border: none;
+  border-radius: 18px;
+  padding: 18px 16px;
+
   color: #fff;
+  font-size: 18px;
+
+  text-align: center;
+  min-height: 64px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.btn.playing {
-  background: #444;
+.btn.playing{
+  background: var(--btn-bg-playing);
 }
 
 /* ===== ORIENTATION ===== */
-@media (orientation: portrait) {
-  #rotateNotice { display: flex; }
+@media (orientation: portrait){
+  #rotateNotice{ display: flex; }
+  #app{ display: block; }
 }
 
-@media (orientation: landscape) {
-  #rotateNotice { display: none; }
+@media (orientation: landscape){
+  #rotateNotice{ display: none; }
+  #app{ display: block; }
+}
+
+/* Lite extra bottenmarginal så listan inte hamnar under kontrollerna */
+#app{
+  padding-bottom: 140px;
 }
