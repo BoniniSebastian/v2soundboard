@@ -3,14 +3,14 @@
   --btnbg: #222;
 }
 
+/* ===== BODY / BG ===== */
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
   color: #fff;
 
-  /* Bakgrund */
   background-color: #000;
-  background-image: url("./assets/bg.PNG"); /* <-- matcha FILNAMN exakt */
+  background-image: url("./assets/bg.PNG"); /* matcha filnamn exakt */
   background-repeat: no-repeat;
   background-position: center center;
   background-size: cover;
@@ -20,45 +20,56 @@ body {
 /* ===== ROTATE NOTICE (PORTRAIT) ===== */
 #rotateNotice {
   position: fixed;
-  left: 14px;
-  right: 14px;
-  top: 14px;
+  left: 0;
+  right: 0;
 
-  padding: 14px 16px;
-  border-radius: 14px;
+  /* flytta ner texten */
+  top: 78px;
 
-  background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(10px);
+  /* ingen ram, ingen “pill”-ruta */
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
 
-  font-size: 22px;
-  font-weight: 650;
+  padding: 0 18px;
+
+  font-size: 26px;
+  font-weight: 750;
+  text-align: left;
 
   z-index: 9999;
-
-  display: none;             /* bara portrait */
-  pointer-events: none;      /* låt appen synas/klickas bakom */
+  display: none;
+  pointer-events: none;
 }
 
-/* ===== PLAYER CONTROLS (ROSA) ===== */
+/* ===== PLAYER CONTROLS (ROSA, NEDKANT) ===== */
 #player-controls {
   position: fixed;
-  top: 14px;
-  right: 14px;
+
+  left: 50%;
+  transform: translateX(-50%);
+
+  bottom: 18px;              /* nedkant */
+  top: auto;
+  right: auto;
+
   display: flex;
   gap: 14px;
   z-index: 10000;
+
+  /* så de inte ligger på Safari-bar helt */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #player-controls button {
-  width: 82px;               /* större */
-  height: 82px;              /* större */
+  width: 78px;
+  height: 78px;
   border-radius: 18px;
 
   background: rgba(0,0,0,0.40);
   border: 4px solid var(--pink);
-
   color: var(--pink);
+
   font-size: 34px;
   line-height: 1;
 
@@ -70,21 +81,17 @@ body {
     0 0 22px rgba(255,79,154,0.55);
 }
 
-/* lite “tryck-känsla” */
 #player-controls button:active {
   transform: scale(0.98);
 }
 
-/* ===== APP LAYOUT ===== */
-.section {
-  padding: 18px 16px;
-}
+/* ===== APP ===== */
+.section { padding: 18px 16px; }
 
 .section-title {
   font-size: 28px;
   margin: 12px 0 12px;
   font-weight: 700;
-  text-transform: none;
 }
 
 .grid {
@@ -94,7 +101,7 @@ body {
 }
 
 .btn {
-  background: #222;          /* musikknappar = svarta som innan */
+  background: #222;   /* musikknappar = svarta */
   border: none;
   border-radius: 14px;
   padding: 16px 14px;
@@ -102,19 +109,21 @@ body {
   font-size: 16px;
 }
 
-.btn.playing {
-  background: #444;
-}
+.btn.playing { background: #444; }
 
 /* ===== ORIENTATION ===== */
 @media (orientation: portrait) {
   #rotateNotice { display: block; }
-
-  /* Dämpa appen i portrait så den syns “bakom” texten */
   #app { opacity: 0.22; }
+
+  /* så appen inte hamnar under kontrollerna i portrait */
+  body { padding-bottom: 120px; }
 }
 
 @media (orientation: landscape) {
   #rotateNotice { display: none; }
   #app { opacity: 1; }
+
+  /* i landscape kan kontrollerna vara lite lägre men inte i vägen */
+  body { padding-bottom: 110px; }
 }
