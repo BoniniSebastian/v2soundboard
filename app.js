@@ -1,14 +1,72 @@
+/* =========================
+   Fade helpers
+========================= */
+const FADE_MS = 250; // 200–300ms känns bra
+let fadeRaf = null;
+
+function cancelFade() {
+  if (fadeRaf) cancelAnimationFrame(fadeRaf);
+  fadeRaf = null;
+}
+
+function fadeOut(audio, ms, done) {
+  if (!audio) return done?.();
+  cancelFade();
+
+  const startVol = audio.volume ?? 1;
+  const start = performance.now();
+
+  function step(now) {
+    const t = Math.min(1, (now - start) / ms);
+    audio.volume = startVol * (1 - t);
+
+    if (t < 1) {
+      fadeRaf = requestAnimationFrame(step);
+    } else {
+      fadeRaf = null;
+      done?.();
+      // återställ volym för nästa gång
+      audio.volume = startVol;
+    }
+  }
+
+  fadeRaf = requestAnimationFrame(step);
+}
+
+function fadePause(audio) {
+  if (!audio || audio.paused) return;
+  fadeOut(audio, FADE_MS, () => audio.pause());
+}
+
+function fadeStop(audio) {
+  if (!audio) return;
+
+  // Om den redan är pausad: nollställ direkt
+  if (audio.paused) {
+    audio.currentTime = 0;
+    return;
+  }
+
+  fadeOut(audio, FADE_MS, () => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+}
+
+/* =========================
+   App state
+========================= */
 let currentAudio = null;
 let currentButton = null;
 
-// URL till "måltuta" (letar i sounds/tuta efter "Goal horn sound effect")
+// URL till "måltuta"
 let goalHornUrl = null;
 
 const OWNER = "BoniniSebastian";
-const REPO  = "v2soundboard";
+const REPO = "v2soundboard";
 
 const CATEGORIES = [
-  { label: "SOUNDS",      folder: "sounds/tuta" },
+  { label: "SOUNDS",    folder: "sounds/tuta" },
   { label: "GOAL",      folder: "sounds/mal" },
   { label: "Utvisning", folder: "sounds/utvisning" },
   { label: "Avbrott",   folder: "sounds/avbrott" }
@@ -16,63 +74,78 @@ const CATEGORIES = [
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
-// Controls
+/* =========================
+   Controls (måste finnas i index.html)
+========================= */
 const playPauseBtn = document.getElementById("playPauseBtn");
 const stopBtn = document.getElementById("stopBtn");
 const goalHornBtn = document.getElementById("goalHornBtn");
 
 // Init icons
-playPauseBtn.textContent = "▶";
-stopBtn.textContent = "■";
+if (playPauseBtn) playPauseBtn.textContent = "▶";
+if (stopBtn) stopBtn.textContent = "■";
 
-playPauseBtn.onclick = () => {
-  if (!currentAudio) return;
+// Play/Pause
+if (playPauseBtn) {
+  playPauseBtn.onclick = () => {
+    if (!currentAudio) return;
 
-  if (currentAudio.paused) {
-    currentAudio.play();
-    playPauseBtn.textContent = "❚❚";
-  } else {
-    currentAudio.pause();
-    playPauseBtn.textContent = "▶";
-  }
-};
-
-stopBtn.onclick = () => {
-  stop();
-  playPauseBtn.textContent = "▶";
-};
-
-// Måltuta-knapp: spelar "Goal horn sound effect" från sounds/tuta
-goalHornBtn.onclick = () => {
-  if (!goalHornUrl) {
-    alert('Ingen måltuta hittad i "sounds/tuta". Döp en fil så att den innehåller "Goal horn sound effect".');
-    return;
-  }
-
-  // Om måltutan redan spelas: stoppa
-  if (currentAudio && !currentAudio.paused && currentAudio.src === goalHornUrl) {
-    stop();
-    playPauseBtn.textContent = "▶";
-    return;
-  }
-
-  stop();
-
-  const audio = new Audio(goalHornUrl);
-  audio.preload = "auto";
-  audio.play().catch(() => alert("Kunde inte spela måltutan."));
-
-  currentAudio = audio;
-  currentButton = null;
-
-  playPauseBtn.textContent = "❚❚";
-
-  audio.onended = () => {
-    stop();
-    playPauseBtn.textContent = "▶";
+    if (currentAudio.paused) {
+      cancelFade();
+      currentAudio.play();
+      playPauseBtn.textContent = "❚❚";
+    } else {
+      fadePause(currentAudio);
+      playPauseBtn.textContent = "▶";
+    }
   };
-};
+}
 
+// Stop
+if (stopBtn) {
+  stopBtn.onclick = () => {
+    stop();
+    if (playPauseBtn) playPauseBtn.textContent = "▶";
+  };
+}
+
+// Måltuta-knapp (rosa)
+if (goalHornBtn) {
+  goalHornBtn.onclick = () => {
+    if (!goalHornUrl) {
+      alert('Ingen måltuta hittad i "sounds/tuta". Döp en fil så att den innehåller "Goal horn sound effect".');
+      return;
+    }
+
+    // Om måltutan redan spelas: stoppa
+    if (currentAudio && !currentAudio.paused && currentAudio.src === goalHornUrl) {
+      stop();
+      if (playPauseBtn) playPauseBtn.textContent = "▶";
+      return;
+    }
+
+    stop();
+
+    const audio = new Audio(goalHornUrl);
+    audio.preload = "auto";
+    cancelFade();
+    audio.play().catch(() => alert("Kunde inte spela måltutan."));
+
+    currentAudio = audio;
+    currentButton = null;
+
+    if (playPauseBtn) playPauseBtn.textContent = "❚❚";
+
+    audio.onended = () => {
+      stop();
+      if (playPauseBtn) playPauseBtn.textContent = "▶";
+    };
+  };
+}
+
+/* =========================
+   Init UI
+========================= */
 init();
 
 async function init() {
@@ -108,13 +181,13 @@ async function loadFolder(folder, gridEl) {
 
     const files = (items || [])
       .filter(x => x?.type === "file" && isAudio(x.name))
-      .sort((a,b) => a.name.localeCompare(b.name, "sv"));
+      .sort((a, b) => a.name.localeCompare(b.name, "sv"));
 
-    // ✅ Välj goal horn från sounds/tuta baserat på filnamn
+    // Hitta måltuta i sounds/tuta
     if (folder === "sounds/tuta" && files.length > 0) {
-      const target = "goal horn sound effect.mp3";
-      const match = files.find(f => (f.name || "").toLowerCase().includes(target));
-      goalHornUrl = (match || files[0]).download_url; // fallback till första i tuta
+      const needle = "goal horn sound effect"; // räcker att den innehåller detta
+      const match = files.find(f => (f.name || "").toLowerCase().includes(needle));
+      goalHornUrl = (match || files[0]).download_url; // fallback: första filen
     }
 
     if (!files.length) {
@@ -140,7 +213,7 @@ function toggle(btn, url) {
   // samma knapp igen = stop
   if (currentButton === btn) {
     stop();
-    playPauseBtn.textContent = "▶";
+    if (playPauseBtn) playPauseBtn.textContent = "▶";
     return;
   }
 
@@ -148,30 +221,31 @@ function toggle(btn, url) {
 
   const audio = new Audio(url);
   audio.preload = "auto";
+  cancelFade();
   audio.play().catch(() => alert("Kunde inte spela ljudet."));
 
   currentAudio = audio;
   currentButton = btn;
   btn.classList.add("playing");
 
-  playPauseBtn.textContent = "❚❚";
+  if (playPauseBtn) playPauseBtn.textContent = "❚❚";
 
   audio.onended = () => {
     stop();
-    playPauseBtn.textContent = "▶";
+    if (playPauseBtn) playPauseBtn.textContent = "▶";
   };
 }
 
 function stop() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-  }
+  const audioToStop = currentAudio;
+  const btnToClear = currentButton;
 
-  if (currentButton) currentButton.classList.remove("playing");
-
+  // Nolla state direkt (UI känns snabb)
   currentAudio = null;
   currentButton = null;
+
+  if (btnToClear) btnToClear.classList.remove("playing");
+  if (audioToStop) fadeStop(audioToStop);
 }
 
 function pretty(name) {
