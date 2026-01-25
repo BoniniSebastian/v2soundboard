@@ -1,54 +1,57 @@
-/* ===== BAS ===== */
+/* =========================
+   GLOBALT
+   ========================= */
 :root{
   --pink: #ff4f9a;
   --btn-bg: #222;
-  --btn-bg-playing: #444;
+  --btn-bg-playing: #333;
   --overlay: rgba(0,0,0,0.55);
-  --text-dim: rgba(255,255,255,0.75);
 }
 
-*{ box-sizing: border-box; }
+*{
+  box-sizing: border-box;
+}
 
 body{
-  margin:0;
+  margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  color:#fff;
+  color: #fff;
 
-  /* Bakgrund + mörk overlay */
   background:
     linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
-    url("./assets/bg.png") center/cover no-repeat fixed;
-  background-color:#000;
+    url("./assets/bg.png") center / cover no-repeat fixed;
+  background-color: #000;
 }
 
-/* ===== ROTATE NOTICE (overlay) ===== */
+/* =========================
+   ROTATE NOTICE (PORTRAIT)
+   ========================= */
 #rotateNotice{
   position: fixed;
   inset: 0;
 
-  display: none;             /* visas bara i portrait */
-  align-items: flex-start;   /* vi styr med padding-top */
+  display: none;
+  align-items: flex-start;
   justify-content: center;
 
-  padding-top: 18vh;         /* flyttar ner texten lite */
-  text-align: center;
+  padding-top: 18vh;
 
   background: var(--overlay);
   color: #fff;
 
-  z-index: 9999;
-  pointer-events: none;      /* VIKTIGT: får aldrig blocka klick */
-}
-
-#rotateNotice{
   font-size: 26px;
   font-weight: 800;
-  letter-spacing: .2px;
-  white-space: nowrap;       /* EN RAD */
+  white-space: nowrap;
+  text-align: center;
   text-shadow: 0 6px 24px rgba(0,0,0,0.65);
+
+  z-index: 9999;
+  pointer-events: none; /* får aldrig blocka klick */
 }
 
-/* ===== PLAYER CONTROLS (rosa) ===== */
+/* =========================
+   PLAYER CONTROLS (ROSA)
+   ========================= */
 #player-controls{
   position: fixed;
   left: 50%;
@@ -76,7 +79,6 @@ body{
   font-size: 34px;
   line-height: 1;
 
-  /* Glow */
   box-shadow:
     0 0 0 2px rgba(255,79,154,0.20),
     0 0 22px rgba(255,79,154,0.65),
@@ -89,9 +91,16 @@ body{
   transform: translateY(1px);
 }
 
-/* ===== APP LAYOUT ===== */
+/* =========================
+   APP / LAYOUT
+   ========================= */
+#app{
+  padding-bottom: 140px; /* så listan inte hamnar under kontrollerna */
+}
+
 .section{
   padding: 18px 16px 10px;
+  margin-bottom: 18px;
 }
 
 .section-title{
@@ -108,38 +117,67 @@ body{
   gap: 14px;
 }
 
-/* Musikknappar (svarta) */
+/* =========================
+   MUSIKKNAPPAR
+   ========================= */
 .btn{
   background: var(--btn-bg);
   border: none;
-  border-radius: 18px;
-  padding: 18px 16px;
+  border-radius: 16px;
+
+  padding: 14px;
+  min-height: 58px;
 
   color: #fff;
-  font-size: 18px;
-
+  font-size: 16px;
   text-align: center;
-  min-height: 64px;
 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  box-shadow: 0 10px 26px rgba(0,0,0,0.22);
+}
+
+.btn:active{
+  transform: scale(0.98);
+}
+
+/* =========================
+   PULSE GLOW – AKTIV KNAPP
+   ========================= */
+@keyframes pulseGlow {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(255,79,154,0.18),
+      0 0 16px rgba(255,79,154,0.35),
+      0 10px 26px rgba(0,0,0,0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(255,79,154,0.30),
+      0 0 28px rgba(255,79,154,0.75),
+      0 10px 26px rgba(0,0,0,0.22);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255,79,154,0.18),
+      0 0 16px rgba(255,79,154,0.35),
+      0 10px 26px rgba(0,0,0,0.22);
+  }
 }
 
 .btn.playing{
   background: var(--btn-bg-playing);
+  animation: pulseGlow 1.2s ease-in-out infinite;
 }
 
-/* ===== ORIENTATION ===== */
+/* =========================
+   ORIENTATION
+   ========================= */
 @media (orientation: portrait){
   #rotateNotice{ display: flex; }
-  #app{ display: block; }
 }
 
 @media (orientation: landscape){
   #rotateNotice{ display: none; }
-  #app{ display: block; }
-}
-
-/* Lite extra bottenmarginal så listan inte hamnar under kontrollerna */
-#app{
-  padding-bottom: 140px;
 }
