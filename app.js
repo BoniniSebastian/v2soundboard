@@ -8,7 +8,7 @@ const OWNER = "BoniniSebastian";
 const REPO  = "v2soundboard";
 
 const CATEGORIES = [
-  { label: "Tuta",      folder: "sounds/tuta" },
+  { label: "SOUNDS",      folder: "sounds/tuta" },
   { label: "GOAL",      folder: "sounds/mal" },
   { label: "Utvisning", folder: "sounds/utvisning" },
   { label: "Avbrott",   folder: "sounds/avbrott" }
