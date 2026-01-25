@@ -30,18 +30,30 @@ body {
 }
 
 /* ===== ROTATE NOTICE (porträtt) ===== */
-#rotateNotice {
+#rotateNotice{
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.78);
+  top: 12px;
+  left: 12px;
+  right: 12px;
+
+  /* gör plats åt knapparna uppe till höger */
+  padding: 12px 230px 12px 14px;
+
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,79,154,0.35);
+  border-radius: 14px;
+
   color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+
   display: none;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 18px 16px;
-  font-size: 22px;
-  z-index: 9999;
-  pointer-events: none; /* VIKTIG: blockerar inte knappar */
+  pointer-events: none;
+
+  /* LÄGG TEXTEN ÖVER KNAPPARNA (men klick går igenom pga pointer-events:none) */
+  z-index: 20000;
+  backdrop-filter: blur(6px);
 }
 
 /* ===== PLAYER CONTROLS ===== */
@@ -158,4 +170,13 @@ body {
 @media (orientation: landscape){
   #rotateNotice{ display: none; }
   #app{ display: block; }
+}
+@media (orientation: portrait) {
+  #rotateNotice { display: block; }
+  #player-controls { top: 64px; } /* flytta knapparna ner lite i portrait */
+}
+
+@media (orientation: landscape) {
+  #rotateNotice { display: none; }
+  #player-controls { top: 12px; }
 }
