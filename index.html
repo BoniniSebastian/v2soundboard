@@ -1,29 +1,23 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SB Soundboard</title>
-
-  <!-- Bumpa v=... när du vill tvinga alla att få senaste CSS -->
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Rotate notice (syns i portrait men blockerar inte klick på knappar bakom) -->
   <div id="rotateNotice">Vrid telefonen till liggande läge</div>
 
-  <!-- Player controls -->
-  <div id="player-controls" aria-label="Spelarkontroller">
-    <button id="playPauseBtn" title="Play/Pause" aria-label="Play/Pause"></button>
-    <button id="stopBtn" title="Stop" aria-label="Stop"></button>
-    <button id="goalHornBtn" title="Måltuta" aria-label="Måltuta"></button>
+  <div id="player-controls">
+    <button id="playPauseBtn">▶</button>
+    <button id="stopBtn">■</button>
+    <button id="goalHornBtn">📣</button>
   </div>
 
-  <!-- App -->
   <div id="app"></div>
 
-  <!-- Bumpa v=... när du vill tvinga alla att få senaste JS -->
-  <script src="app.js?v=7"></script>
+  <script src="app.js"></script>
 </body>
 </html>
