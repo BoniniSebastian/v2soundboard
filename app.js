@@ -40,7 +40,6 @@ function fadeOut(audio, ms, done) {
     try { return typeof audio.volume === "number" ? audio.volume : 1; } catch { return 1; }
   })();
 
-  // Om volym inte går att styra (iOS-strul), kör utan fade
   if (!safeSetVolume(audio, startVol)) { done?.(); return; }
 
   function step(now) {
@@ -54,7 +53,7 @@ function fadeOut(audio, ms, done) {
       fadeRaf = requestAnimationFrame(step);
     } else {
       fadeRaf = null;
-      safeSetVolume(audio, startVol); // reset
+      safeSetVolume(audio, startVol);
       done?.();
     }
   }
@@ -87,14 +86,11 @@ function fadeStop(audio, onDone) {
    2-kanals state
    ========================= */
 
-// MUSIK-kanal (bara 1 i taget)
 let musicAudio = null;
 let musicButton = null;
 
-// HORN-kanal (staplas)
 let hornAudios = [];
 
-// Hitta horn-URL i sounds/tuta
 let goalHornUrl = null;
 
 /* =========================
@@ -153,14 +149,39 @@ function stopAll() {
   stopMusic(true);
 }
 
+/* =========================
+   Tid på knapp-funktion
+   ========================= */
+function updateButtonTime(btn, audio) {
+  const total = Math.floor(audio.duration);
+
+  const interval = setInterval(() => {
+    if (!audio || audio.paused || audio.ended) {
+      btn.textContent = btn.dataset.label;
+      clearInterval(interval);
+      return;
+    }
+
+    const remaining = Math.ceil(total - audio.currentTime);
+
+    // Tweak: korta låtnamn om för långt
+    let label = btn.dataset.label;
+    if (label.length > 10) label = label.slice(0, 10) + "...";
+
+    btn.textContent = `${label} (${remaining}s)`;
+  }, 250);
+}
+
+/* =========================
+   Spela musik
+   ========================= */
 function playMusic(url, btnOrNull) {
-  // samma musikknapp igen = stoppa musiken
   if (btnOrNull && musicButton === btnOrNull) {
     stopMusic(true);
     return;
   }
 
-  stopMusic(false); // stoppa bara musiken, inte horn
+  stopMusic(false);
 
   const audio = new Audio(url);
   audio.preload = "auto";
@@ -171,10 +192,14 @@ function playMusic(url, btnOrNull) {
   if (btnOrNull) {
     musicButton = btnOrNull;
     btnOrNull.classList.add("playing");
+    if (!btnOrNull.dataset.label) btnOrNull.dataset.label = btnOrNull.textContent;
   }
 
   audio.play()
-    .then(() => setPlayIcon(true))
+    .then(() => {
+      setPlayIcon(true);
+      if (btnOrNull) updateButtonTime(btnOrNull, audio);
+    })
     .catch(() => setPlayIcon(false));
 
   audio.onended = () => {
@@ -182,6 +207,9 @@ function playMusic(url, btnOrNull) {
   };
 }
 
+/* =========================
+   Spela horn
+   ========================= */
 function playHorn() {
   if (!goalHornUrl) {
     alert('Ingen måltuta hittad i "sounds/tuta". Döp filen så att den innehåller "Goal horn sound effect".');
@@ -200,6 +228,9 @@ function playHorn() {
   };
 }
 
+/* =========================
+   Bind kontroller
+   ========================= */
 function bindControls() {
   setPlayIcon(false);
   setStopIcon();
@@ -218,24 +249,22 @@ function bindControls() {
 
   stopBtn.onclick = () => stopAll();
 
-  // 📣 Horn: staplas och påverkar inte musiken
   goalHornBtn.onclick = () => {
-  playHorn();
+    playHorn();
 
-  const goalSection = document.getElementById("goal-section");
-  if (goalSection) {
-    goalSection.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
-};
+    const goalSection = document.getElementById("goal-section");
+    if (goalSection) {
+      goalSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  };
 }
 
 /* =========================
    UI build
    ========================= */
-
 init().catch(console.error);
 
 async function init() {
@@ -247,9 +276,9 @@ async function init() {
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
-if (cat.label === "GOAL") {
-  section.id = "goal-section";
-}
+    if (cat.label === "GOAL") {
+      section.id = "goal-section";
+    }
     const title = document.createElement("div");
     title.className = "section-title";
     title.textContent = cat.label;
@@ -277,7 +306,6 @@ async function loadFolder(folder, gridEl) {
       .filter(x => x?.type === "file" && isAudio(x.name))
       .sort((a, b) => (a.name || "").localeCompare(b.name || "", "sv"));
 
-    // Hitta goal horn i sounds/tuta
     if (folder === "sounds/tuta") {
       const wanted = "goal horn sound effect";
       const match = files.find(f => (f.name || "").toLowerCase().includes(wanted));
@@ -293,8 +321,8 @@ async function loadFolder(folder, gridEl) {
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = pretty(file.name);
+      btn.dataset.label = pretty(file.name);
 
-      // Grid = musikkanal (en åt gången)
       btn.onclick = () => playMusic(file.download_url, btn);
 
       gridEl.appendChild(btn);
