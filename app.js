@@ -1,8 +1,9 @@
 /* =========================
    SB Soundboard – app.js
-   - Kategorier från /sounds/<mapp>
-   - Play/Pause + Stop + Måltuta-knapp
-   - iOS-safe fade (kraschar inte om volume ej går att styra)
+   - 1 MUSIK åt gången (grid)
+   - HORN kan spelas Ovanpå och STAPLAS (flera horn samtidigt)
+   - Stop stoppar allt
+   - Play/Pause styr endast musik
    ========================= */
 
 const OWNER = "BoniniSebastian";
@@ -17,15 +18,8 @@ const CATEGORIES = [
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
-// Fade (ms)
+// Fade för MUSIK
 const FADE_MS = 220;
-
-// State
-let currentAudio = null;
-let currentButton = null;
-let goalHornUrl = null;
-
-// Fade internals
 let fadeRaf = null;
 
 function cancelFade() {
@@ -34,13 +28,7 @@ function cancelFade() {
 }
 
 function safeSetVolume(audio, v) {
-  // iOS Safari kan ignorera/ibland strula med volume – vi får aldrig krascha här
-  try {
-    audio.volume = v;
-    return true;
-  } catch {
-    return false;
-  }
+  try { audio.volume = v; return true; } catch { return false; }
 }
 
 function fadeOut(audio, ms, done) {
@@ -52,30 +40,21 @@ function fadeOut(audio, ms, done) {
     try { return typeof audio.volume === "number" ? audio.volume : 1; } catch { return 1; }
   })();
 
-  // Om vi inte kan sätta volym: kör "done" direkt (ingen fade men funkar alltid)
-  if (!safeSetVolume(audio, startVol)) {
-    done?.();
-    return;
-  }
+  // Om volym inte går att styra (iOS-strul), kör utan fade
+  if (!safeSetVolume(audio, startVol)) { done?.(); return; }
 
   function step(now) {
     const t = Math.min(1, (now - start) / ms);
     const v = Math.max(0, startVol * (1 - t));
 
-    // Om Safari börjar vägra mitt i: avsluta och kör done
     const ok = safeSetVolume(audio, v);
-    if (!ok) {
-      fadeRaf = null;
-      done?.();
-      return;
-    }
+    if (!ok) { fadeRaf = null; done?.(); return; }
 
     if (t < 1) {
       fadeRaf = requestAnimationFrame(step);
     } else {
       fadeRaf = null;
-      // återställ inför nästa gång
-      safeSetVolume(audio, startVol);
+      safeSetVolume(audio, startVol); // reset
       done?.();
     }
   }
@@ -85,15 +64,12 @@ function fadeOut(audio, ms, done) {
 
 function fadePause(audio) {
   if (!audio || audio.paused) return;
-  fadeOut(audio, FADE_MS, () => {
-    try { audio.pause(); } catch {}
-  });
+  fadeOut(audio, FADE_MS, () => { try { audio.pause(); } catch {} });
 }
 
 function fadeStop(audio, onDone) {
   if (!audio) { onDone?.(); return; }
 
-  // Om redan pausad: nollställ direkt
   if (audio.paused) {
     try { audio.currentTime = 0; } catch {}
     onDone?.();
@@ -108,24 +84,28 @@ function fadeStop(audio, onDone) {
 }
 
 /* =========================
-   Controls (måste finnas i index.html)
-   - playPauseBtn
-   - stopBtn
-   - goalHornBtn
+   2-kanals state
    ========================= */
 
+// MUSIK-kanal (bara 1 i taget)
+let musicAudio = null;
+let musicButton = null;
+
+// HORN-kanal (staplas)
+let hornAudios = [];
+
+// Hitta horn-URL i sounds/tuta
+let goalHornUrl = null;
+
+/* =========================
+   Controls
+   ========================= */
 const playPauseBtn = document.getElementById("playPauseBtn");
 const stopBtn = document.getElementById("stopBtn");
 const goalHornBtn = document.getElementById("goalHornBtn");
 
-// Om någon id saknas → krascha inte hela appen
-function controlsOk() {
-  return !!(playPauseBtn && stopBtn && goalHornBtn);
-}
-
 function setPlayIcon(isPlaying) {
   if (!playPauseBtn) return;
-  // ▶ för play, ❚❚ för paus
   playPauseBtn.textContent = isPlaying ? "❚❚" : "▶";
 }
 
@@ -134,109 +114,112 @@ function setStopIcon() {
   stopBtn.textContent = "■";
 }
 
-function bindControls() {
-  if (!controlsOk()) {
-    console.warn("Saknar controls i index.html (playPauseBtn/stopBtn/goalHornBtn).");
-    return;
+function clearMusicMarker() {
+  if (musicButton) musicButton.classList.remove("playing");
+  musicButton = null;
+}
+
+function stopHornAll() {
+  for (const a of hornAudios) {
+    try { a.pause(); } catch {}
+    try { a.currentTime = 0; } catch {}
   }
-
-  setPlayIcon(false);
-  setStopIcon();
-
-  playPauseBtn.onclick = () => {
-    if (!currentAudio) return;
-
-    if (currentAudio.paused) {
-      // Resume
-      cancelFade();
-      currentAudio.play().then(() => setPlayIcon(true)).catch(() => {});
-    } else {
-      // Pause med fade
-      fadePause(currentAudio);
-      setPlayIcon(false);
-    }
-  };
-
-  stopBtn.onclick = () => {
-    stopAll(true);
-  };
-
-  goalHornBtn.onclick = () => {
-    if (!goalHornUrl) {
-      alert('Ingen måltuta hittad i "sounds/tuta". Döp filen så att den innehåller "Goal horn sound effect".');
-      return;
-    }
-    playUrl(goalHornUrl, null); // null = ingen grid-knapp som markeras
-  };
+  hornAudios = [];
 }
 
-/* =========================
-   Core playback
-   ========================= */
-
-function clearPlayingMarker() {
-  if (currentButton) currentButton.classList.remove("playing");
-  currentButton = null;
-}
-
-function stopAll(updateIcon = true) {
+function stopMusic(updateIcon = true) {
   cancelFade();
 
-  const audioToStop = currentAudio;
-  clearPlayingMarker();
+  const audioToStop = musicAudio;
+  clearMusicMarker();
 
   if (!audioToStop) {
     if (updateIcon) setPlayIcon(false);
     return;
   }
 
-  // Stoppa med fade, men vänta tills fade är klar innan vi nollställer state
   fadeStop(audioToStop, () => {
-    // Om något nytt började spela under fade: rör inte det
-    if (currentAudio === audioToStop) {
-      currentAudio = null;
+    if (musicAudio === audioToStop) {
+      musicAudio = null;
       if (updateIcon) setPlayIcon(false);
     }
   });
 
-  // Vi rensar inte currentAudio direkt här – annars kan play/pause bli knas på iOS
-  // men vi vill ändå visa play direkt:
   if (updateIcon) setPlayIcon(false);
 }
 
-function playUrl(url, btnOrNull) {
-  // Om samma knapp trycks igen → stop (som du vill)
-  if (btnOrNull && currentButton === btnOrNull) {
-    stopAll(true);
+function stopAll() {
+  stopHornAll();
+  stopMusic(true);
+}
+
+function playMusic(url, btnOrNull) {
+  // samma musikknapp igen = stoppa musiken
+  if (btnOrNull && musicButton === btnOrNull) {
+    stopMusic(true);
     return;
   }
 
-  stopAll(false);
+  stopMusic(false); // stoppa bara musiken, inte horn
 
-  // Skapa ny Audio varje gång (stabilt)
   const audio = new Audio(url);
   audio.preload = "auto";
 
-  currentAudio = audio;
-  clearPlayingMarker();
+  musicAudio = audio;
+  clearMusicMarker();
 
   if (btnOrNull) {
-    currentButton = btnOrNull;
+    musicButton = btnOrNull;
     btnOrNull.classList.add("playing");
   }
 
-  // Start
   audio.play()
     .then(() => setPlayIcon(true))
-    .catch(() => {
-      // iOS kan blocka om något konstigt – visa play-icon igen
-      setPlayIcon(false);
-    });
+    .catch(() => setPlayIcon(false));
 
   audio.onended = () => {
-    // Bara om det fortfarande är “current”
-    if (currentAudio === audio) stopAll(true);
+    if (musicAudio === audio) stopMusic(true);
   };
+}
+
+function playHorn() {
+  if (!goalHornUrl) {
+    alert('Ingen måltuta hittad i "sounds/tuta". Döp filen så att den innehåller "Goal horn sound effect".');
+    return;
+  }
+
+  const a = new Audio(goalHornUrl);
+  a.preload = "auto";
+
+  hornAudios.push(a);
+
+  a.play().catch(() => {});
+
+  a.onended = () => {
+    hornAudios = hornAudios.filter(x => x !== a);
+  };
+}
+
+function bindControls() {
+  setPlayIcon(false);
+  setStopIcon();
+
+  playPauseBtn.onclick = () => {
+    if (!musicAudio) return;
+
+    if (musicAudio.paused) {
+      cancelFade();
+      musicAudio.play().then(() => setPlayIcon(true)).catch(() => {});
+    } else {
+      fadePause(musicAudio);
+      setPlayIcon(false);
+    }
+  };
+
+  stopBtn.onclick = () => stopAll();
+
+  // 📣 Horn: staplas och påverkar inte musiken
+  goalHornBtn.onclick = () => playHorn();
 }
 
 /* =========================
@@ -299,9 +282,8 @@ async function loadFolder(folder, gridEl) {
       btn.className = "btn";
       btn.textContent = pretty(file.name);
 
-      btn.onclick = () => {
-        playUrl(file.download_url, btn);
-      };
+      // Grid = musikkanal (en åt gången)
+      btn.onclick = () => playMusic(file.download_url, btn);
 
       gridEl.appendChild(btn);
     }
