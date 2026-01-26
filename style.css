@@ -111,13 +111,13 @@ body{
 .btn{
   background: var(--btn-bg);
   border: none;
-  border-radius: 16px;
+  border-radius: 13px;
 
   padding: 14px;
   min-height: 58px;
 
   color: #fff;
-  font-size: 16px;
+  font-size: 13px;
   text-align: center;
 
   user-select: none;
