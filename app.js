@@ -219,7 +219,17 @@ function bindControls() {
   stopBtn.onclick = () => stopAll();
 
   // 📣 Horn: staplas och påverkar inte musiken
-  goalHornBtn.onclick = () => playHorn();
+  goalHornBtn.onclick = () => {
+  playHorn();
+
+  const goalSection = document.getElementById("goal-section");
+  if (goalSection) {
+    goalSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+};
 }
 
 /* =========================
@@ -237,7 +247,9 @@ async function init() {
   for (const cat of CATEGORIES) {
     const section = document.createElement("div");
     section.className = "section";
-
+if (cat.label === "GOAL") {
+  section.id = "goal-section";
+}
     const title = document.createElement("div");
     title.className = "section-title";
     title.textContent = cat.label;
