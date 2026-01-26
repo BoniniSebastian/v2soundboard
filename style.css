@@ -169,3 +169,6 @@ body{
 @media (orientation: landscape){
   #rotateNotice{ display: none; }
 }
+#rotateNotice {
+  display: none !important;
+}
