@@ -88,7 +88,9 @@ function fadeStop(audio, onDone) {
 
 let musicAudio = null;
 let musicButton = null;
+
 let hornAudios = [];
+
 let goalHornUrl = null;
 
 /* =========================
@@ -125,6 +127,13 @@ function stopMusic(updateIcon = true) {
   cancelFade();
 
   const audioToStop = musicAudio;
+
+  // Rensa interval för knappen
+  if (musicButton && musicButton.timeInterval) {
+    clearInterval(musicButton.timeInterval);
+    musicButton.textContent = musicButton.dataset.label;
+  }
+
   clearMusicMarker();
 
   if (!audioToStop) {
@@ -151,9 +160,6 @@ function stopAll() {
    Tid på knapp-funktion
    ========================= */
 function updateButtonTime(btn, audio) {
-  const total = Math.floor(audio.duration);
-
-  // Rensa tidigare intervall om existerar
   if (btn.timeInterval) clearInterval(btn.timeInterval);
 
   btn.timeInterval = setInterval(() => {
@@ -163,14 +169,18 @@ function updateButtonTime(btn, audio) {
       return;
     }
 
-    const remaining = Math.ceil(total - audio.currentTime);
+    const duration = audio.duration;
+    if (!duration || isNaN(duration)) {
+      btn.textContent = btn.dataset.label;
+      return;
+    }
 
+    const remaining = Math.ceil(duration - audio.currentTime);
     let label = btn.dataset.label;
     if (label.length > 10) label = label.slice(0, 10) + "...";
 
     btn.textContent = `${label} (${remaining}s)`;
 
-    // Stanna intervallet först när ljudet är slut
     if (audio.ended) {
       btn.textContent = btn.dataset.label;
       clearInterval(btn.timeInterval);
@@ -185,6 +195,12 @@ function playMusic(url, btnOrNull) {
   if (btnOrNull && musicButton === btnOrNull) {
     stopMusic(true);
     return;
+  }
+
+  // Stoppa befintlig musik och rensa interval
+  if (musicButton && musicButton.timeInterval) {
+    clearInterval(musicButton.timeInterval);
+    musicButton.textContent = musicButton.dataset.label;
   }
 
   stopMusic(false);
