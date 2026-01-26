@@ -3,9 +3,9 @@
    ========================= */
 :root{
   --pink: #ff4f9a;
-  --btn-bg: #222;
-  --btn-bg-playing: #333;
-  --overlay: rgba(0,0,0,0.6); /* lite mörkare i stående */
+  --btn-bg: rgba(0,0,0,0.75);
+  --btn-bg-playing: rgba(20,20,20,0.9);
+  --overlay: rgba(0,0,0,0.7);
 }
 
 *{
@@ -163,6 +163,8 @@ body{
 .btn.playing{
   background: var(--btn-bg-playing);
   animation: pulseGlow 1.2s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 12px rgba(255,255,255,0.06);
 }
 
 /* =========================
