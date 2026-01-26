@@ -18,8 +18,14 @@ body{
   color: #fff;
 
   background:
-    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+    radial-gradient(
+      circle at top,
+      rgba(0,0,0,0.55) 0%,
+      rgba(0,0,0,0.85) 55%,
+      rgba(0,0,0,0.95) 100%
+    ),
     url("./assets/bg.png") center / cover no-repeat fixed;
+
   background-color: #000;
 }
 
