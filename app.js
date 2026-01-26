@@ -88,9 +88,7 @@ function fadeStop(audio, onDone) {
 
 let musicAudio = null;
 let musicButton = null;
-
 let hornAudios = [];
-
 let goalHornUrl = null;
 
 /* =========================
@@ -155,20 +153,28 @@ function stopAll() {
 function updateButtonTime(btn, audio) {
   const total = Math.floor(audio.duration);
 
-  const interval = setInterval(() => {
-    if (!audio || audio.paused || audio.ended) {
+  // Rensa tidigare intervall om existerar
+  if (btn.timeInterval) clearInterval(btn.timeInterval);
+
+  btn.timeInterval = setInterval(() => {
+    if (!audio) {
       btn.textContent = btn.dataset.label;
-      clearInterval(interval);
+      clearInterval(btn.timeInterval);
       return;
     }
 
     const remaining = Math.ceil(total - audio.currentTime);
 
-    // Tweak: korta låtnamn om för långt
     let label = btn.dataset.label;
     if (label.length > 10) label = label.slice(0, 10) + "...";
 
     btn.textContent = `${label} (${remaining}s)`;
+
+    // Stanna intervallet först när ljudet är slut
+    if (audio.ended) {
+      btn.textContent = btn.dataset.label;
+      clearInterval(btn.timeInterval);
+    }
   }, 250);
 }
 
@@ -193,17 +199,20 @@ function playMusic(url, btnOrNull) {
     musicButton = btnOrNull;
     btnOrNull.classList.add("playing");
     if (!btnOrNull.dataset.label) btnOrNull.dataset.label = btnOrNull.textContent;
+    updateButtonTime(btnOrNull, audio);
   }
 
   audio.play()
-    .then(() => {
-      setPlayIcon(true);
-      if (btnOrNull) updateButtonTime(btnOrNull, audio);
-    })
+    .then(() => setPlayIcon(true))
     .catch(() => setPlayIcon(false));
 
   audio.onended = () => {
     if (musicAudio === audio) stopMusic(true);
+
+    if (btnOrNull && btnOrNull.timeInterval) {
+      clearInterval(btnOrNull.timeInterval);
+      btnOrNull.textContent = btnOrNull.dataset.label;
+    }
   };
 }
 
