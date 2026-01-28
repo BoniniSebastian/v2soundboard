@@ -13,7 +13,7 @@ const CATEGORIES = [
   { label: "SOUNDS",    folder: "sounds/tuta" },
   { label: "GOAL",      folder: "sounds/mal" },
   { label: "Utvisning", folder: "sounds/utvisning" },
-  { label: "Avbrott",   folder: "sounds/avbrott" }
+  { label: "Avbrott",   folder: "sounds/avbrott" },
    { label: "Random",   folder: "sounds/random" }
 ];
 
