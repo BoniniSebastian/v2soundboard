@@ -14,6 +14,7 @@ const CATEGORIES = [
   { label: "GOAL",      folder: "sounds/mal" },
   { label: "Utvisning", folder: "sounds/utvisning" },
   { label: "Avbrott",   folder: "sounds/avbrott" }
+   { label: "Random",   folder: "sounds/random" }
 ];
 
 const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
