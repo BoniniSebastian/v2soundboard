@@ -1,399 +1,379 @@
-// Prov-MVP: Parse -> Render -> Grade -> Redo/Wrong-only (no backend)
+/* =========================
+   SB Soundboard – app.js
+   - 1 MUSIK åt gången (grid)
+   - HORN kan spelas Ovanpå och STAPLAS (flera horn samtidigt)
+   - Stop stoppar allt
+   - Play/Pause styr endast musik
+   ========================= */
 
-const el = (id) => document.getElementById(id);
+const OWNER = "BoniniSebastian";
+const REPO  = "v2soundboard";
 
-// ===== DOM =====
-const inputText = el("inputText");
-const loadBtn = el("loadBtn");
-const clearBtn = el("clearBtn");
-const exampleBtn = el("exampleBtn");
+const CATEGORIES = [
+  { label: "SOUNDS",    folder: "sounds/tuta" },
+  { label: "GOAL",      folder: "sounds/mal" },
+  { label: "Utvisning", folder: "sounds/utvisning" },
+  { label: "Avbrott",   folder: "sounds/avbrott" },
+   { label: "Random",   folder: "sounds/random" }
+];
 
-const quizCard = el("quizCard");
-const quizTitle = el("quizTitle");
-const quizContainer = el("quizContainer");
+const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "aac"];
 
-const submitBtn = el("submitBtn");
-const parseError = el("parseError");
-const resultEl = el("result");
+// Fade för MUSIK
+const FADE_MS = 220;
+let fadeRaf = null;
 
-const afterActions = el("afterActions");
-const newQuizBtn = el("newQuizBtn");
-const redoBtn = el("redoBtn");
-const wrongOnlyBtn = el("wrongOnlyBtn");
-
-const appTitle = el("appTitle");
-
-// AI Prompt UI
-const qCountEl = el("qCount");
-const optCountEl = el("optCount");
-const copyPromptBtn = el("copyPromptBtn");
-const copyStatus = el("copyStatus");
-
-// Prompt-ruta + fallback-knapp
-const promptBox = el("promptBox");
-const selectPromptBtn = el("selectPromptBtn");
-
-// ===== STATE =====
-let currentQuiz = null; // full quiz
-let viewQuiz = null;    // currently rendered quiz (full or wrong-only)
-let lastGrade = null;   // { wrongQIs: number[] }
-
-// ===== EXEMPEL =====
-const EXAMPLE_TEXT = `TEST: Exempelprov
-
-Q: Vilken färg har himlen en klar dag?
-- Grön
-- *Blå
-- Röd
-
-Q: Hur många ben har en spindel?
-- *8
-- 6
-- 10
-
-Q: Vilket är ett däggdjur?
-- Haj
-- *Hund
-- Örn
-`;
-
-// ===== HELPERS =====
-function showError(msg) {
-  parseError.textContent = msg;
-  parseError.classList.remove("hidden");
-}
-function hideError() {
-  parseError.classList.add("hidden");
-  parseError.textContent = "";
-}
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-  }[c]));
-}
-function resetUI() {
-  currentQuiz = null;
-  viewQuiz = null;
-  lastGrade = null;
-
-  quizCard.classList.add("hidden");
-  quizContainer.innerHTML = "";
-  resultEl.classList.add("hidden");
-  resultEl.innerHTML = "";
-  afterActions.classList.add("hidden");
-
-  hideError();
-  appTitle.textContent = "Prov";
+function cancelFade() {
+  if (fadeRaf) cancelAnimationFrame(fadeRaf);
+  fadeRaf = null;
 }
 
-// ===== TOLERANT PARSER =====
-function parseQuiz(raw) {
-  const lines = raw
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map(l => l.trim())
-    .filter(l => l.length > 0);
+function safeSetVolume(audio, v) {
+  try { audio.volume = v; return true; } catch { return false; }
+}
 
-  if (lines.length === 0) throw new Error("Ingen text att parsa.");
+function fadeOut(audio, ms, done) {
+  if (!audio) { done?.(); return; }
+  cancelFade();
 
-  let title = "Prov";
-  let i = 0;
+  const start = performance.now();
+  const startVol = (() => {
+    try { return typeof audio.volume === "number" ? audio.volume : 1; } catch { return 1; }
+  })();
 
-  if (lines[i].toUpperCase().startsWith("TEST:")) {
-    title = lines[i].slice(5).trim() || "Prov";
-    i++;
+  if (!safeSetVolume(audio, startVol)) { done?.(); return; }
+
+  function step(now) {
+    const t = Math.min(1, (now - start) / ms);
+    const v = Math.max(0, startVol * (1 - t));
+
+    const ok = safeSetVolume(audio, v);
+    if (!ok) { fadeRaf = null; done?.(); return; }
+
+    if (t < 1) {
+      fadeRaf = requestAnimationFrame(step);
+    } else {
+      fadeRaf = null;
+      safeSetVolume(audio, startVol);
+      done?.();
+    }
   }
 
-  const questions = [];
-
-  const isOptionLine = (line) => {
-    // Tillåt -, •, –, — samt 1. / 1)
-    return /^(-|•|–|—)\s+/.test(line) || /^\d+[\.\)]\s+/.test(line);
-  };
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (!line.toUpperCase().startsWith("Q:")) {
-      throw new Error(`Förväntade "Q:" men fick: "${line}"`);
-    }
-
-    const qText = line.slice(2).trim();
-    if (!qText) throw new Error("En fråga saknar text efter Q:.");
-    i++;
-
-    const opts = [];
-    let correctIndex = -1;
-
-    while (i < lines.length && isOptionLine(lines[i])) {
-      let opt = lines[i]
-        .replace(/^(-|•|–|—)\s+/, "")
-        .replace(/^\d+[\.\)]\s+/, "")
-        .trim();
-
-      let isCorrect = false;
-
-      // Rättmarkering med *
-      if (opt.startsWith("*")) {
-        isCorrect = true;
-        opt = opt.slice(1).trim();
-      }
-
-      if (!opt) {
-        throw new Error(`Ett svarsalternativ är tomt i frågan: "${qText}"`);
-      }
-
-      if (isCorrect) {
-        if (correctIndex !== -1) {
-          throw new Error(`Flera rätta svar markerade i frågan: "${qText}". Endast ett får ha *.`);
-        }
-        correctIndex = opts.length;
-      }
-
-      opts.push(opt);
-      i++;
-    }
-
-    if (opts.length < 2 || opts.length > 3) {
-      throw new Error(`Frågan "${qText}" måste ha 2–3 svarsalternativ (har ${opts.length}).`);
-    }
-    if (correctIndex === -1) {
-      throw new Error(`Ingen rätt markering (*) i frågan: "${qText}".`);
-    }
-
-    questions.push({ text: qText, options: opts, correctIndex });
-  }
-
-  if (questions.length === 0) throw new Error("Inga frågor hittades.");
-  return { title, questions };
+  fadeRaf = requestAnimationFrame(step);
 }
 
-// ===== RENDER QUIZ =====
-function renderQuiz(quiz) {
-  quizContainer.innerHTML = "";
-  resultEl.classList.add("hidden");
-  resultEl.innerHTML = "";
-  afterActions.classList.add("hidden");
+function fadePause(audio) {
+  if (!audio || audio.paused) return;
+  fadeOut(audio, FADE_MS, () => { try { audio.pause(); } catch {} });
+}
 
-  quizTitle.textContent = quiz.title;
-  appTitle.textContent = quiz.title;
+function fadeStop(audio, onDone) {
+  if (!audio) { onDone?.(); return; }
 
-  quiz.questions.forEach((q, qi) => {
-    const qDiv = document.createElement("div");
-    qDiv.className = "question";
+  if (audio.paused) {
+    try { audio.currentTime = 0; } catch {}
+    onDone?.();
+    return;
+  }
 
-    qDiv.innerHTML = `
-      <p class="q-title">${qi + 1}. ${escapeHtml(q.text)} <span class="badge" id="badge-${qi}"></span></p>
-      <div class="options" role="radiogroup" aria-label="Fråga ${qi + 1}">
-        ${q.options.map((opt, oi) => {
-          const name = `q_${qi}`;
-          const id = `q_${qi}_o_${oi}`;
-          return `
-            <label class="option" for="${id}">
-              <input type="radio" id="${id}" name="${name}" value="${oi}" />
-              <span>${escapeHtml(opt)}</span>
-            </label>
-          `;
-        }).join("")}
-      </div>
-    `;
+  fadeOut(audio, FADE_MS, () => {
+    try { audio.pause(); } catch {}
+    try { audio.currentTime = 0; } catch {}
+    onDone?.();
+  });
+}
 
-    quizContainer.appendChild(qDiv);
+/* =========================
+   2-kanals state
+   ========================= */
+
+let musicAudio = null;
+let musicButton = null;
+
+let hornAudios = [];
+
+let goalHornUrl = null;
+
+/* =========================
+   Controls
+   ========================= */
+const playPauseBtn = document.getElementById("playPauseBtn");
+const stopBtn = document.getElementById("stopBtn");
+const goalHornBtn = document.getElementById("goalHornBtn");
+
+function setPlayIcon(isPlaying) {
+  if (!playPauseBtn) return;
+  playPauseBtn.textContent = isPlaying ? "❚❚" : "▶";
+}
+
+function setStopIcon() {
+  if (!stopBtn) return;
+  stopBtn.textContent = "■";
+}
+
+function clearMusicMarker() {
+  if (musicButton) musicButton.classList.remove("playing");
+  musicButton = null;
+}
+
+function stopHornAll() {
+  for (const a of hornAudios) {
+    try { a.pause(); } catch {}
+    try { a.currentTime = 0; } catch {}
+  }
+  hornAudios = [];
+}
+
+function stopMusic(updateIcon = true) {
+  cancelFade();
+
+  const audioToStop = musicAudio;
+
+  // Rensa interval för knappen
+  if (musicButton && musicButton.timeInterval) {
+    clearInterval(musicButton.timeInterval);
+    musicButton.textContent = musicButton.dataset.label;
+  }
+
+  clearMusicMarker();
+
+  if (!audioToStop) {
+    if (updateIcon) setPlayIcon(false);
+    return;
+  }
+
+  fadeStop(audioToStop, () => {
+    if (musicAudio === audioToStop) {
+      musicAudio = null;
+      if (updateIcon) setPlayIcon(false);
+    }
   });
 
-  quizCard.classList.remove("hidden");
-  quizCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (updateIcon) setPlayIcon(false);
 }
 
-// ===== GRADE =====
-function gradeQuiz(quiz) {
-  let score = 0;
-  const wrongQIs = [];
+function stopAll() {
+  stopHornAll();
+  stopMusic(true);
+}
 
-  quiz.questions.forEach((q, qi) => {
-    const selected = document.querySelector(`input[name="q_${qi}"]:checked`);
-    const badge = el(`badge-${qi}`);
+/* =========================
+   Tid på knapp-funktion
+   ========================= */
+function updateButtonTime(btn, audio) {
+  if (btn.timeInterval) clearInterval(btn.timeInterval);
 
-    if (!selected) {
-      badge.textContent = "Ej svar";
-      badge.className = "badge";
-      wrongQIs.push(qi);
+  btn.timeInterval = setInterval(() => {
+    if (!audio) {
+      btn.textContent = btn.dataset.label;
+      clearInterval(btn.timeInterval);
       return;
     }
 
-    const chosen = Number(selected.value);
-    const ok = chosen === q.correctIndex;
-
-    if (ok) {
-      score++;
-      badge.textContent = "Rätt";
-      badge.className = "badge ok";
-    } else {
-      badge.textContent = "Fel";
-      badge.className = "badge err";
-      wrongQIs.push(qi);
+    const duration = audio.duration;
+    if (!duration || isNaN(duration)) {
+      btn.textContent = btn.dataset.label;
+      return;
     }
-  });
 
-  lastGrade = { wrongQIs };
+    const remaining = Math.ceil(duration - audio.currentTime);
+    let label = btn.dataset.label;
+    if (label.length > 10) label = label.slice(0, 10) + "...";
 
-  resultEl.classList.remove("hidden");
-  resultEl.innerHTML = `
-    <strong>Resultat:</strong> ${score} / ${quiz.questions.length}<br/>
-    <span class="muted">Grönt = rätt, rött = fel, “Ej svar” = obesvarad fråga.</span>
-  `;
+    btn.textContent = `${label} (${remaining}s)`;
 
-  afterActions.classList.remove("hidden");
-
-  // Disable "Träna på fel" om inga fel
-  if (wrongQIs.length === 0) {
-    wrongOnlyBtn.disabled = true;
-    wrongOnlyBtn.title = "Inga fel att träna på";
-    wrongOnlyBtn.style.opacity = "0.6";
-    wrongOnlyBtn.style.cursor = "not-allowed";
-  } else {
-    wrongOnlyBtn.disabled = false;
-    wrongOnlyBtn.title = "";
-    wrongOnlyBtn.style.opacity = "1";
-    wrongOnlyBtn.style.cursor = "pointer";
-  }
-
-  resultEl.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (audio.ended) {
+      btn.textContent = btn.dataset.label;
+      clearInterval(btn.timeInterval);
+    }
+  }, 250);
 }
 
-function buildWrongOnlyQuiz(fullQuiz, wrongQIs) {
-  const questions = wrongQIs.map(qi => fullQuiz.questions[qi]);
-  return {
-    title: `${fullQuiz.title} – Träna på fel`,
-    questions
+/* =========================
+   Spela musik
+   ========================= */
+function playMusic(url, btnOrNull) {
+  if (btnOrNull && musicButton === btnOrNull) {
+    stopMusic(true);
+    return;
+  }
+
+  // Stoppa befintlig musik och rensa interval
+  if (musicButton && musicButton.timeInterval) {
+    clearInterval(musicButton.timeInterval);
+    musicButton.textContent = musicButton.dataset.label;
+  }
+
+  stopMusic(false);
+
+  const audio = new Audio(url);
+  audio.preload = "auto";
+
+  musicAudio = audio;
+  clearMusicMarker();
+
+  if (btnOrNull) {
+    musicButton = btnOrNull;
+    btnOrNull.classList.add("playing");
+    if (!btnOrNull.dataset.label) btnOrNull.dataset.label = btnOrNull.textContent;
+    updateButtonTime(btnOrNull, audio);
+  }
+
+  audio.play()
+    .then(() => setPlayIcon(true))
+    .catch(() => setPlayIcon(false));
+
+  audio.onended = () => {
+    if (musicAudio === audio) stopMusic(true);
+
+    if (btnOrNull && btnOrNull.timeInterval) {
+      clearInterval(btnOrNull.timeInterval);
+      btnOrNull.textContent = btnOrNull.dataset.label;
+    }
   };
 }
 
-// ===== AI PROMPT =====
-function buildPrompt(numQuestions, numOptions) {
-  const third = numOptions === 3 ? "- <svar C>\n" : "";
-  return `Du är en provgenerator.
+/* =========================
+   Spela horn
+   ========================= */
+function playHorn() {
+  if (!goalHornUrl) {
+    alert('Ingen måltuta hittad i "sounds/tuta". Döp filen så att den innehåller "Goal horn sound effect".');
+    return;
+  }
 
-Jag kommer bifoga 1–10 bilder/foton (t.ex. sidor ur en bok/arbetsblad). Skapa ett prov baserat ENDAST på innehållet i bilderna.
+  const a = new Audio(goalHornUrl);
+  a.preload = "auto";
 
-KRAV:
-- Svara ENDAST i detta textformat (inget annat):
-TEST: <kort titel>
+  hornAudios.push(a);
 
-Q: <fråga 1>
-- <svar A>
-- *<rätt svar>
-${third}
-Q: <fråga 2>
-- <svar A>
-- *<rätt svar>
-${third}
-... (fortsätt)
+  a.play().catch(() => {});
 
-- Skapa exakt ${numQuestions} frågor.
-- Varje fråga ska ha exakt ${numOptions} svarsalternativ.
-- Exakt ett alternativ per fråga ska markeras som rätt med en stjärna direkt efter "- ".
-- Inga extra rubriker, ingen förklaring, ingen markdown.
-- Svaren ska vara korta och tydligt olika.
-
-BÖRJA NU.`;
+  a.onended = () => {
+    hornAudios = hornAudios.filter(x => x !== a);
+  };
 }
 
-// ===== Prompt UX: generera + försök kopiera + fallback =====
-copyPromptBtn.addEventListener("click", async () => {
-  const numQuestions = Number(qCountEl.value);
-  const numOptions = Number(optCountEl.value);
-  const prompt = buildPrompt(numQuestions, numOptions);
+/* =========================
+   Bind kontroller
+   ========================= */
+function bindControls() {
+  setPlayIcon(false);
+  setStopIcon();
 
-  // Visa prompten (så den alltid går att kopiera manuellt)
-  promptBox.value = prompt;
+  playPauseBtn.onclick = () => {
+    if (!musicAudio) return;
 
-  // Markera allt direkt (iOS)
-  promptBox.focus();
-  promptBox.select();
-  promptBox.setSelectionRange(0, promptBox.value.length);
-
-  // Försök kopiera automatiskt
-  let ok = false;
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(prompt);
-      ok = true;
+    if (musicAudio.paused) {
+      cancelFade();
+      musicAudio.play().then(() => setPlayIcon(true)).catch(() => {});
+    } else {
+      fadePause(musicAudio);
+      setPlayIcon(false);
     }
-  } catch {}
+  };
 
-  if (!ok) {
-    try {
-      ok = document.execCommand("copy");
-    } catch {}
+  stopBtn.onclick = () => stopAll();
+
+  goalHornBtn.onclick = () => {
+    playHorn();
+
+    const goalSection = document.getElementById("goal-section");
+    if (goalSection) {
+      goalSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  };
+}
+
+/* =========================
+   UI build
+   ========================= */
+init().catch(console.error);
+
+async function init() {
+  bindControls();
+
+  const root = document.getElementById("app") || createRoot();
+  root.innerHTML = "";
+
+  for (const cat of CATEGORIES) {
+    const section = document.createElement("div");
+    section.className = "section";
+    if (cat.label === "GOAL") {
+      section.id = "goal-section";
+    }
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = cat.label;
+
+    const grid = document.createElement("div");
+    grid.className = "grid";
+
+    section.appendChild(title);
+    section.appendChild(grid);
+    root.appendChild(section);
+
+    await loadFolder(cat.folder, grid);
   }
+}
 
-  if (ok) {
-    copyStatus.textContent = "Kopierad! Öppna ChatGPT och klistra in.";
-    selectPromptBtn.classList.add("hidden");
-  } else {
-    copyStatus.textContent = "Kunde inte kopiera automatiskt. Tryck & håll i rutan → Kopiera.";
-    selectPromptBtn.classList.remove("hidden");
-  }
-});
+async function loadFolder(folder, gridEl) {
+  const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${folder}?t=${Date.now()}`;
 
-// Fallback-knapp: markera igen om användaren tappat markeringen
-selectPromptBtn.addEventListener("click", () => {
-  promptBox.focus();
-  promptBox.select();
-  promptBox.setSelectionRange(0, promptBox.value.length);
-  copyStatus.textContent = "Markerad. Tryck och håll i rutan → Kopiera.";
-});
-
-// ===== UI EVENTS =====
-loadBtn.addEventListener("click", () => {
-  hideError();
   try {
-    const quiz = parseQuiz(inputText.value);
-    currentQuiz = quiz;
-    viewQuiz = quiz;
-    lastGrade = null;
-    renderQuiz(viewQuiz);
+    const res = await fetch(apiUrl, { cache: "no-store" });
+    if (!res.ok) throw new Error(`GitHub API fel: ${res.status}`);
+    const items = await res.json();
+
+    const files = (items || [])
+      .filter(x => x?.type === "file" && isAudio(x.name))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "sv"));
+
+    if (folder === "sounds/tuta") {
+      const wanted = "goal horn sound effect";
+      const match = files.find(f => (f.name || "").toLowerCase().includes(wanted));
+      goalHornUrl = (match || files[0] || null)?.download_url || null;
+    }
+
+    if (!files.length) {
+      gridEl.innerHTML = `<div style="opacity:.7">Inga ljud i ${folder}</div>`;
+      return;
+    }
+
+    for (const file of files) {
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.textContent = pretty(file.name);
+      btn.dataset.label = pretty(file.name);
+
+      btn.onclick = () => playMusic(file.download_url, btn);
+
+      gridEl.appendChild(btn);
+    }
+
   } catch (e) {
-    showError(e.message || String(e));
+    console.error(e);
+    gridEl.innerHTML = `<div style="opacity:.7">Kunde inte läsa ${folder}</div>`;
   }
-});
+}
 
-submitBtn.addEventListener("click", () => {
-  if (!viewQuiz) return;
-  gradeQuiz(viewQuiz);
-});
+function pretty(name) {
+  return (name || "").replace(/\.[^/.]+$/, "");
+}
 
-redoBtn.addEventListener("click", () => {
-  if (!currentQuiz) return;
-  viewQuiz = currentQuiz;
-  lastGrade = null;
-  renderQuiz(viewQuiz);
-});
+function isAudio(name) {
+  if (!name) return false;
+  if (name === ".keep") return false;
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  return AUDIO_EXT.includes(ext);
+}
 
-wrongOnlyBtn.addEventListener("click", () => {
-  if (!currentQuiz || !lastGrade) return;
-  if (lastGrade.wrongQIs.length === 0) return;
-
-  viewQuiz = buildWrongOnlyQuiz(currentQuiz, lastGrade.wrongQIs);
-  lastGrade = null;
-  renderQuiz(viewQuiz);
-});
-
-newQuizBtn.addEventListener("click", () => {
-  inputText.value = "";
-  resetUI();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-});
-
-clearBtn.addEventListener("click", () => {
-  inputText.value = "";
-  resetUI();
-});
-
-exampleBtn.addEventListener("click", () => {
-  inputText.value = EXAMPLE_TEXT;
-});
-
-// Init
-resetUI();
+function createRoot() {
+  const div = document.createElement("div");
+  div.id = "app";
+  document.body.appendChild(div);
+  return div;
+}
